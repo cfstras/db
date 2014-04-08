@@ -16,4 +16,4 @@ Running some tests:
 
 Achieving happiness:
 
-    make happyness
+    make happiness

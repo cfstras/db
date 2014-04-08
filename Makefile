@@ -2,7 +2,7 @@
 CXX 		= clang++
 DEBUG		= -g -O0
 OPTIMIZED	= -O3
-CXXFLAGS	= -Weverything -Werror
+CXXFLAGS	= -Weverything -std=c++11 -Wno-c++98-compat
 
 SRCDIR		= src
 BINDIR		= bin
@@ -16,8 +16,8 @@ debug: dir build
 
 test: run-tests
 
-happyness:
-	echo Sorry, not implemented yet.
+happiness:
+	@echo Sorry, not implemented yet.
 
 clean:
 	\rm -f $(BINDIR)/* $(OBJDIR)/*
@@ -25,7 +25,7 @@ clean:
 dir:
 	mkdir -p $(BINDIR) $(OBJDIR)
 
-SRCS = $(shell ls $(SRCDIR))
+SRCS = $(shell cd $(SRCDIR) && find . -type f -name "*.cpp")
 OBJS = $(SRCS:%.cpp=$(OBJDIR)/%.o)
 
 build: $(OBJS)
