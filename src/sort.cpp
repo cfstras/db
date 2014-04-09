@@ -22,7 +22,7 @@ namespace {
 
 struct PairCompare {
 	bool operator()(pair<T,size_t> const & o1, pair<T,size_t> const & o2) {
-		return o1.first < o2.first;
+		return o1.first > o2.first;
 	}
 };
 
@@ -61,8 +61,8 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 	// take up space, too.
 
 	// create temp file
-	char tempTemplate[] ="db-externalsortXXXXXX";
-	fdTemp = mkstemp(tempTemplate);
+	char tmpFilename[] ="externalsort-XXXXXX";
+	fdTemp = mkstemp(tmpFilename);
 	if (fdTemp == -1) {
 		util::checkReturn("creating chunk tempfile", errno);
 	}
@@ -75,11 +75,16 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 	stepMerge(fdOutput);
 
 	util::checkReturn("closing temp file", close(fdTemp));
+	util::checkReturn("deleting temp file", unlink(tmpFilename));
 }
 
 void Sorter::stepSort(int fdInput) {
 	// save the positions (as index) of the chunk starting points
 	chunkPositions.reserve(size * sizeof(T) / memSize);
+
+#ifdef DEBUG
+	cout << "chunks:" << endl;
+#endif
 
 	// sort chunks
 	ssize_t bRead;
@@ -104,7 +109,15 @@ void Sorter::stepSort(int fdInput) {
 		chunkPositions.push_back(elementsSorted);
 		numChunks++;
 		elementsSorted += elementsRead;
+
+#ifdef DEBUG
+		for (auto &i : buffer) {
+			cout << i << endl;
+		}
+		cout << endl;
+#endif
 	}
+
 	if (bRead == -1) {
 		util::checkReturn("reading from input", errno);
 	}
@@ -127,36 +140,42 @@ void Sorter::stepMerge(int fdOutput) {
 	buffer.resize(bufferLen);
 	buffer.shrink_to_fit();
 
+#ifdef DEBUG
+	cout << "Load:" << endl;
+#endif
+
 	// fill up the queue
 	for (size_t chunkInd=0; chunkInd < numChunks; chunkInd++) {
 		fillQueue(chunkInd, bufferSize);
 	}
 
-	buffer.resize(0);
-	size_t elementsSorted = 0;
-	while (elementsSorted < size) {
-		// pull from queue and write out
-		while (!queue.empty()) {
-			auto el = queue.top();
-			queue.pop();
-			cout << el.first << endl;
-			buffer.push_back(el.first);
-			elementsSorted++;
-			if (buffer.size() == bufferLen) {
-				auto written = write(fdOutput, &buffer[0], bufferSize);
-				if (written == -1) {
-					util::checkReturn("writing output", errno);
-				}
-				buffer.resize(0);
-				cout << endl;
-			}
+#ifdef DEBUG
+	cout << "merge:" << endl;
+#endif
 
-			auto chunkInd = el.second;
-			// if chunk still has some left
-			if (chunkInd+1 < numChunks && chunkPositions[chunkInd] <= chunkPositions[chunkInd+1
-				|| chunkPositions[chunkInd] <= size]) {
-				fillQueue(chunkInd, bufferSize);
+	buffer.resize(0);
+	// pull from queue and write out
+	while (!queue.empty()) {
+		auto el = queue.top();
+		queue.pop();
+#ifdef DEBUG
+		cout << "emit "<< el.second << ": " << el.first << endl;
+#endif
+		buffer.push_back(el.first);
+		if (buffer.size() == bufferLen) {
+			auto written = write(fdOutput, &buffer[0], bufferSize);
+			if (written == -1) {
+				util::checkReturn("writing output", errno);
 			}
+			buffer.resize(0);
+			cout << endl;
+		}
+
+		auto chunkInd = el.second;
+		// if chunk still has some left
+		if (chunkInd+1 < numChunks && chunkPositions[chunkInd] <= chunkPositions[chunkInd+1
+			|| chunkPositions[chunkInd] <= size]) {
+			fillQueue(chunkInd, bufferSize);
 		}
 	}
 	// flush
@@ -181,6 +200,9 @@ void Sorter::fillQueue(size_t chunkInd, size_t bufferSize) {
 		util::checkReturn("reading from temp file", errno);
 	}
 	for (size_t i = 0; i < chunkLen; i++) {
+#ifdef DEBUG
+			cout << "load " << chunkInd << ": " << buffer[i] << endl;
+#endif
 		queue.emplace(pair<T,size_t>(buffer[i], chunkInd));
 	}
 
