@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -21,8 +22,7 @@ int main() {
 
 void checkReturn(string what, int err) {
 	if (err != 0) {
-		cout << "Error while " << what << ": " << strerror(err) << endl;
-		throw;
+		throw runtime_error("Error while " + what + ": " + strerror(err));
 	}
 }
 
