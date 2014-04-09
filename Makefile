@@ -18,10 +18,10 @@ TEST_CXXFLAGS	= $(CXXFLAGS) -isystem $(GTESTDIR)/include -pthread
 TEST_LDFLAGS	= $(LDFLAGS) $(GTEST_LIB)
 
 
-default: dir build
+default: build
 
-#TODO opt build
-debug: dir build
+debug: build
+	gdb --args $(BINDIR)/$(BINARY)
 
 test: dir $(GTEST_LIB) build-test
 	$(BINDIR)/test_$(BINARY)
@@ -46,6 +46,7 @@ TESTSRCS = $(shell cd $(TESTDIR) && find . -type f -name "*.cpp")
 OBJS = $(SRCS:%.cpp=$(OBJDIR)/%.o)
 OBJS_TEST = $(filter-out %main.o,$(OBJS)) $(TESTSRCS:%.cpp=$(OBJDIR)_test/%.o)
 
+#TODO opt build
 build: dir $(OBJS) $(BINDIR)/$(BINARY)
 
 $(BINDIR)/$(BINARY): $(OBJS)

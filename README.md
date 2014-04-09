@@ -11,7 +11,7 @@ Prerequisites: build-essential & clang.
     #TODO: not optimizing yet
     make
 
-### Building a non-optimized, debug version
+### Building a debug version and starting it with gdb
 
     make debug
 
