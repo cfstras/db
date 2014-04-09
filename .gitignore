@@ -1,5 +1,6 @@
 *.o
 bin/
 build/
+build_test/
 *.sublime-workspace
 *.bin
