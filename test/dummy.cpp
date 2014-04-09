@@ -1,5 +1,9 @@
 #include <gtest/gtest.h>
 
-TEST(dummy, DummiesDummiesAppropriately) {
-	EXPECT_TRUE(true);
+namespace {
+
+TEST(DummyTest, DummiesDummiesAppropriately) {
+	EXPECT_TRUE(true) << "Woah there, something's really wrong.";
 }
+
+} // namespace
