@@ -4,3 +4,5 @@ build/
 build_test/
 *.sublime-workspace
 *.bin
+.tags
+.tags_sorted_by_file
