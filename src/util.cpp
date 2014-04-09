@@ -11,6 +11,7 @@ namespace util {
 
 void checkReturn(string what, int err) {
 	if (err != 0) {
+		err = err == -1 ? errno : err;
 		throw runtime_error("Error while " + what + ": " + strerror(err));
 	}
 }
