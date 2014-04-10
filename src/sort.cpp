@@ -246,7 +246,7 @@ size_t Sorter::fillBuffer(size_t chunkInd) {
 bool Sorter::fillQueue(size_t chunkInd, size_t count) {
 	if (chunkPositions[chunkInd] < size && buffersPos[chunkInd] == buffers[chunkInd].size()) {
 		fillBuffer(chunkInd);
-	} else if (chunkPositions[chunkInd] == size) {
+	} else if (chunkPositions[chunkInd] == size && buffersPos[chunkInd] == buffers[chunkInd].size()) {
 		return false;
 	}
 	auto maxBufferPos = buffersPos[chunkInd] + count;
