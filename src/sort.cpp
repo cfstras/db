@@ -108,9 +108,9 @@ void Sorter::stepSort(int fdInput) {
 			elementsSorted < size) {
 		auto bytesRead = static_cast<size_t>(bRead);
 
-        // limit to size
+		// limit to size
 		uint64_t elementsRead = static_cast<uint64_t>(bytesRead) / sizeof(T);
-        elementsRead = min(elementsRead, size - elementsSorted);
+		elementsRead = min(elementsRead, size - elementsSorted);
 		bytesRead  = elementsRead * sizeof(T);
 
 		auto begin = buffer.begin();
@@ -157,16 +157,23 @@ void Sorter::stepMerge(int fdOutput) {
 	// n = numChunks
 	// a = bufferSize
 	//
-	// if we get a non-realistic memSize, do not count in the output buffer
-	bufferSize = memSize;
-	if (memSize > 2 * outBufferSize) {
-		bufferSize -= outBufferSize;
+	bufferSize = outBufferSize > memSize ? bufferSize : memSize - outBufferSize;
+
+	bufferSize /= ( 2 * numChunks);
+	size_t bufferLen = bufferSize / sizeof(T);
+
+	if (bufferLen < 4) { // some sanity.
+		bufferLen = 4;
+		bufferSize = sizeof(T) * bufferLen;
 	}
-	bufferSize = bufferSize / ( 2 * numChunks);
-	auto bufferLen = bufferSize / sizeof(T);
+
+#ifdef DEBUG
+	cout << "merge buffers len: " << bufferLen << endl;
+#endif
 
 	// smaller buffer for bigger prio queue
-	buffer.resize(outBufferSize / sizeof(T));
+	auto outBufferLen = outBufferSize / sizeof(T);
+	buffer.resize(outBufferLen);
 	buffer.shrink_to_fit();
 	buffer.resize(0);
 
@@ -196,8 +203,8 @@ void Sorter::stepMerge(int fdOutput) {
 		cout << "emit "<< el.second << ": " << el.first << endl;
 #endif
 		buffer.push_back(el.first);
-		if (buffer.size() == bufferLen) {
-			auto written = write(fdOutput, &buffer[0], bufferSize);
+		if (buffer.size() == outBufferLen) {
+			auto written = write(fdOutput, &buffer[0], outBufferSize);
 			if (written == -1) {
 				util::checkReturn("writing output", errno);
 			}
@@ -206,11 +213,9 @@ void Sorter::stepMerge(int fdOutput) {
 		}
 
 		auto chunkInd = el.second;
-		// if chunk still has some left
-        if ((chunkInd+1 < numChunks && chunkPositions[chunkInd] <= chunkPositions[chunkInd+1] )
-            || ( chunkInd+1 == numChunks && chunkPositions[chunkInd] <= size)) {
-			fillQueue(chunkInd, 1);
-		}
+
+		// queue another item if left in chunk
+		fillQueue(chunkInd, 1);
 	}
 	// flush
 	auto written = write(fdOutput, &buffer[0], buffer.size() * sizeof(T));
@@ -222,7 +227,7 @@ void Sorter::stepMerge(int fdOutput) {
 size_t Sorter::fillBuffer(size_t chunkInd) {
 	size_t chunkLen;
 	if (chunkInd+1 < numChunks) {
-		chunkLen = chunkPositions[chunkInd+1] - chunkPositions[chunkInd];
+		chunkLen = chunkLength*(chunkInd+1) - chunkPositions[chunkInd];
 	} else {
 		chunkLen = size - chunkPositions[chunkInd];
 	}
@@ -246,15 +251,15 @@ size_t Sorter::fillBuffer(size_t chunkInd) {
 bool Sorter::fillQueue(size_t chunkInd, size_t count) {
 	if (chunkPositions[chunkInd] < size && buffersPos[chunkInd] == buffers[chunkInd].size()) {
 		fillBuffer(chunkInd);
-	} else if (chunkPositions[chunkInd] == size && buffersPos[chunkInd] == buffers[chunkInd].size()) {
-		return false;
+	} else if (chunkPositions[chunkInd] >= size && buffersPos[chunkInd] >= buffers[chunkInd].size()) {
+		return false; //nope, chunk is done.
 	}
 	auto maxBufferPos = buffersPos[chunkInd] + count;
 	for (size_t i = buffersPos[chunkInd]; i < maxBufferPos; i++) {
 		auto el = buffers[chunkInd][i];
-#ifdef DEBUG
+/*#ifdef DEBUG
 			cout << "load " << chunkInd << ": " << el << endl;
-#endif
+#endif*/
 		queue.emplace(pair<T,size_t>(el, chunkInd));
 	}
 	buffersPos[chunkInd] = maxBufferPos;
