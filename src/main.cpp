@@ -28,7 +28,7 @@ int testSort() {
 	if (out == -1) {
 		util::checkReturn("opening output", errno);
 	}
-	externalSort(in, 20, out, 5 * 8);
+	externalSort(in, 16, out, 15 * 8);
 
 	util::checkReturn("closing input", close(in));
 	util::checkReturn("closing output", close(out));

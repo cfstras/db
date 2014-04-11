@@ -37,6 +37,8 @@ private:
 	size_t fillBuffer(size_t chunkInd);
 	bool fillQueue(size_t chunkInd, size_t limit);
 
+	// chunk starting offsets
+	// get moved in merge step buffer refill
 	vector<uint64_t> chunkPositions;
 
 	// queue contains pairs of (number, buffer_index)
@@ -157,7 +159,7 @@ void Sorter::stepMerge(int fdOutput) {
 	// n = numChunks
 	// a = bufferSize
 	//
-	bufferSize = outBufferSize > memSize ? bufferSize : memSize - outBufferSize;
+	bufferSize = outBufferSize > memSize ? memSize : memSize - outBufferSize;
 
 	bufferSize /= ( 2 * numChunks);
 	size_t bufferLen = bufferSize / sizeof(T);
@@ -249,9 +251,11 @@ size_t Sorter::fillBuffer(size_t chunkInd) {
 }
 
 bool Sorter::fillQueue(size_t chunkInd, size_t count) {
-	if (chunkPositions[chunkInd] < size && buffersPos[chunkInd] == buffers[chunkInd].size()) {
+	if (chunkPositions[chunkInd] < chunkLength*(chunkInd+1) &&
+			buffersPos[chunkInd] >= buffers[chunkInd].size()) {
 		fillBuffer(chunkInd);
-	} else if (chunkPositions[chunkInd] >= size && buffersPos[chunkInd] >= buffers[chunkInd].size()) {
+	} else if (chunkPositions[chunkInd] >= chunkLength*(chunkInd+1) &&
+			   buffersPos[chunkInd] >= buffers[chunkInd].size()) {
 		return false; //nope, chunk is done.
 	}
 	auto maxBufferPos = buffersPos[chunkInd] + count;
