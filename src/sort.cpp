@@ -253,7 +253,7 @@ size_t Sorter::fillBuffer(size_t chunkInd) {
 bool Sorter::fillQueue(size_t chunkInd, size_t count) {
 	if (chunkPositions[chunkInd] < chunkLength*(chunkInd+1) &&
 			buffersPos[chunkInd] >= buffers[chunkInd].size()) {
-		fillBuffer(chunkInd);
+        if (fillBuffer(chunkInd) == 0) {return false;} // chunk is done
 	} else if (chunkPositions[chunkInd] >= chunkLength*(chunkInd+1) &&
 			   buffersPos[chunkInd] >= buffers[chunkInd].size()) {
 		return false; //nope, chunk is done.
