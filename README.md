@@ -1,15 +1,38 @@
+# Assignment 1: sort
+
+Implementation is in `src/sort.cpp`
+
+```bash
+make opt
+bin/sort $BIG_RANDOM_FILE $OUTFILE 1024
+
+# if it crashes, delete temp files
+rm -f externalsort-*
+```
+
+Some notes:
+
+- works best with ~ 1GiB of available memory
+- no verify (yet)
+
+
+---
+
+---
+
 # db
 
-This is a simple database, built in the class _Datenbanksysteme und moderne CPU-Architekturen_.
+This will be a simple database, built in the class _Datenbanksysteme und moderne CPU-Architekturen_.
 
 ## Usage
 
-Prerequisites: build-essential & clang.
+Prerequisites: _build-essential_ & _clang_.
 
 ### Building the program
 
-    #TODO: not optimizing yet
-    make
+    make opt
+
+**Note:** running _make_ with the default target will produce an unoptimized binary
 
 ### Building a debug version and starting it with gdb
 
