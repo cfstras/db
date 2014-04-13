@@ -42,12 +42,17 @@ int main(int argc, char* argv[]) {
 		std::cerr << "cannot open file '" << argv[1] << "': " << strerror(errno) << std::endl;
 		return -1;
 	}
+#ifndef SILENT
 	cout << "allocating space" << endl;
+#endif
 	if ((ret = posix_fallocate(fd, 0, n*sizeof(uint64_t))) != 0)
 		std::cerr << "warning: could not allocate file space: " << strerror(ret) << std::endl;
 
+#ifndef SILENT
 	cout << "writing" << endl;
 	uint64_t percent = 0;
+#endif
+
 	vector<uint64_t> buffer;
 	buffer.reserve(1024);
 
@@ -56,13 +61,17 @@ int main(int argc, char* argv[]) {
 		if (buffer.size() == 1024) {
 			flushBuffer(buffer, fd);
 		}
+#ifndef SILENT
 		if ((i*100 / n) > percent) {
 			percent = i*100 / n;
 			std::cout << percent << "%" << endl;
 		}
+#endif
 	}
 	flushBuffer(buffer, fd);
+#ifndef SILENT
 	cout << n << " numbers written." << endl;
+#endif
 	close(fd);
 	return 0;
 }

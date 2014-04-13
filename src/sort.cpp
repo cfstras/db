@@ -69,7 +69,7 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 		chunkPositions(),
 		memSize(_memSize),
 		size(_size),
-		chunkLength(memSize / sizeof(T)),
+		chunkLength(max(4UL, memSize / sizeof(T))), // be sane
 		bufferSize(0),
 		buffer(chunkLength),
 		numChunks(0),
@@ -89,29 +89,27 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 	}
 
 	char tmpFilename[] ="externalsort-XXXXXX";
-	try {
-		// create temp file
-		fdTemp = mkstemp(tmpFilename);
-		if (fdTemp == -1) {
-			util::checkReturn("creating chunk tempfile", errno);
-		}
-
-		size_t tempFileSize = size * sizeof(T);
-		util::checkReturn("allocating chunk tempfile for " +
-			to_string(tempFileSize / (1024*1024)) + "MB",
-			posix_fallocate(fdTemp, 0, static_cast<off_t>(tempFileSize)));
-
-		cout << "step 1: sorting batches..." << endl;
-		stepSort(fdInput);
-		cout << "step 2: merging " << numChunks << " batches..." << endl;
-		stepMerge(fdOutput);
-
-		util::checkReturn("closing temp file", close(fdTemp));
-		util::checkReturn("deleting temp file", unlink(tmpFilename));
-	} catch (exception e) {
-		unlink(tmpFilename);
-		throw e;
+	// create temp file
+	fdTemp = mkstemp(tmpFilename);
+	if (fdTemp == -1) {
+		util::checkReturn("creating chunk tempfile", errno);
 	}
+	unlink(tmpFilename);
+
+	size_t tempFileSize = size * sizeof(T);
+	util::checkReturn("allocating chunk tempfile for " +
+		to_string(tempFileSize / (1024*1024)) + "MB",
+		posix_fallocate(fdTemp, 0, static_cast<off_t>(tempFileSize)));
+#ifndef SILENT
+	cout << "step 1: sorting batches..." << endl;
+#endif
+	stepSort(fdInput);
+#ifndef SILENT
+	cout << "step 2: merging " << numChunks << " batches..." << endl;
+#endif
+	stepMerge(fdOutput);
+
+	util::checkReturn("closing temp file", close(fdTemp));
 }
 
 void Sorter::stepSort(int fdInput) {
@@ -130,7 +128,9 @@ void Sorter::stepSort(int fdInput) {
 			elementsSorted < size) {
 		auto bytesRead = static_cast<size_t>(bRead);
 
+#ifndef SILENT
 		cout << "batch " << numChunks << "... " << flush;
+#endif
 
 		// limit to size
 		uint64_t elementsRead = static_cast<uint64_t>(bytesRead) / sizeof(T);
@@ -141,13 +141,17 @@ void Sorter::stepSort(int fdInput) {
 		auto end = buffer.begin() + static_cast<int64_t>(elementsRead);
 		sort(begin, end);
 
+#ifndef SILENT
 		cout << "writing... "  << flush;
+#endif
 		// write chunk to temp file
 		auto written = write(fdTemp, &buffer[0], bytesRead);
 		if (written < 0) {
 			util::checkReturn("writing chunk to tempfile", errno);
 		}
+#ifndef SILENT
 		cout << "done." << endl;
+#endif
 
 		chunkPositions.push_back(elementsSorted);
 		numChunks++;
@@ -238,11 +242,13 @@ void Sorter::stepMerge(int fdOutput) {
 			elementsSorted += buffer.size();
 			buffer.resize(0);
 
+#ifndef SILENT
 			if (percent < (elementsSorted * 100 / size)) {
 				percent = (elementsSorted * 100 / size);
 				cout << "merged " << percent << "%, "<< elementsSorted <<
 					"/" << size << endl;
 			}
+#endif
 #ifdef DEBUG
 			cout << endl;
 #endif
