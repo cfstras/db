@@ -13,7 +13,7 @@ rm -f externalsort-*
 Some notes:
 
 - works best with ~ 1GiB of available memory
-- no verify (yet)
+- SortTest.SortHuge does the testing. To execute, `make clean test`
 
 
 ---
@@ -40,7 +40,7 @@ Prerequisites: _build-essential_ & _clang_.
 
 ### Running some tests
 
-First, get the latest source of googletest [here][gtest]. Unzip it somewhere, preferably in `/usr/src/gtest`. If you chose a different path, open up the [Makefile][makefile] and set the correct path in the variable `GTESTDIR`.  
+First, get the latest source of [googletest][gtest]. Unzip it somewhere, preferably in `/usr/src/gtest`. If you chose a different path, open up the [Makefile][makefile] and set the correct path in the variable `GTESTDIR`.  
 Then:
 
     make test
