@@ -12,21 +12,21 @@ GTEST_LIB		= $(OBJDIR)_test/libgtest.a
 CXX 			= clang++
 DEBUG			= -O0 -DDEBUG
 OPTIMIZED		= -O3
-CXXFLAGS		= -g -Weverything -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
+CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -Weverything -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
 LDFLAGS			=
 TEST_CXXFLAGS	= $(CXXFLAGS) -isystem $(GTESTDIR)/include -pthread
 TEST_LDFLAGS	= $(LDFLAGS) $(GTEST_LIB)
 
 
-all: build
+all: build-debug
 
-debug: do-debug
+debug: build-debug
 	gdb --args $(BINDIR)/$(BINARY)
 
-do-debug: CXXFLAGS += $(DEBUG)
-do-debug: build
+build-debug: CXXFLAGS += $(DEBUG)
+build-debug: build
 
-test: dir $(GTEST_LIB) build-test
+test: build-test
 	$(BINDIR)/test_$(BINARY)
 
 opt: clean do-opt
@@ -35,18 +35,23 @@ do-opt: CXXFLAGS += $(OPTIMIZED)
 do-opt: build
 
 run: build
-	bin/db
+	$(BINDIR)/$(BINARY)
 
 happiness:
 	@echo Sorry, not implemented yet.
 
 clean:
 	\rm -rf $(BINDIR) $(OBJDIR) $(OBJDIR)_test
+	\rm -f externalsort-*
 
 dir:
 	mkdir -p $(BINDIR)
 	cd $(SRCDIR) && find -type d -exec mkdir -p ../$(OBJDIR)/{} \;
 	cd $(TESTDIR) && find -type d -exec mkdir -p ../$(OBJDIR)_test/{} \;
+
+.PHONY: datagen
+datagen:
+	make -C datagenerator silent
 
 SRCS = $(shell cd $(SRCDIR) && find . -type f -name "*.cpp")
 TESTSRCS = $(shell cd $(TESTDIR) && find . -type f -name "*.cpp")
@@ -60,7 +65,8 @@ build: dir $(OBJS) $(BINDIR)/$(BINARY)
 $(BINDIR)/$(BINARY): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $(BINDIR)/$(BINARY)
 
-build-test: dir $(OBJS) $(OBJS_TEST) $(BINDIR)/test_$(BINARY)
+build-test: CXXFLAGS+= -DSILENT
+build-test: dir datagen $(GTEST_LIB) $(OBJS) $(OBJS_TEST) $(BINDIR)/test_$(BINARY)
 
 $(BINDIR)/test_$(BINARY): $(OBJS_TEST) $(GTEST_LIB)
 	$(CXX) $(TEST_CXXFLAGS) $(TEST_LDFLAGS) $(OBJS_TEST) $(GTEST_LIB) -o $(BINDIR)/test_$(BINARY)
