@@ -10,9 +10,9 @@ GTESTDIR		= /usr/src/gtest
 GTEST_LIB		= $(OBJDIR)_test/libgtest.a
 
 CXX 			= clang++
-DEBUG			= -g -O0 -DDEBUG
+DEBUG			= -O0 -DDEBUG
 OPTIMIZED		= -O3
-CXXFLAGS		= -Weverything -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
+CXXFLAGS		= -g -Weverything -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
 LDFLAGS			=
 TEST_CXXFLAGS	= $(CXXFLAGS) -isystem $(GTESTDIR)/include -pthread
 TEST_LDFLAGS	= $(LDFLAGS) $(GTEST_LIB)
@@ -28,6 +28,11 @@ do-debug: build
 
 test: dir $(GTEST_LIB) build-test
 	$(BINDIR)/test_$(BINARY)
+
+opt: clean do-opt
+
+do-opt: CXXFLAGS += $(OPTIMIZED)
+do-opt: build
 
 run: build
 	bin/db

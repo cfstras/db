@@ -70,6 +70,7 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 		chunkLength(memSize / sizeof(T)),
 		bufferSize(0),
 		buffer(chunkLength),
+		numChunks(0),
 		buffers(0),
 		buffersPos(0) {
 
@@ -165,6 +166,7 @@ void Sorter::stepSort(int fdInput) {
 void Sorter::stepMerge(int fdOutput) {
 	// now merge.
 
+	uint64_t elementsSorted = 0;
 	// ensure some space in the output file
 	off_t offset = lseek(fdOutput, 0, SEEK_CUR);
 	util::checkReturn("allocating output space",
@@ -230,7 +232,9 @@ void Sorter::stepMerge(int fdOutput) {
 			if (written == -1) {
 				util::checkReturn("writing output", errno);
 			}
+			elementsSorted += buffer.size();
 			buffer.resize(0);
+			cout << "merged " << elementsSorted << "/" << size << endl;
 #ifdef DEBUG
 			cout << endl;
 #endif
