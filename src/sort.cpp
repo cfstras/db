@@ -79,7 +79,7 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 	if(size == UINT64_MAX) {
 		auto ret = lseek(fdInput, 0, SEEK_END);
 		if (ret == -1 ) util::checkReturn("getting file length", errno);
-		size = static_cast<uint64_t>(ret);
+		size = static_cast<uint64_t>(ret) / sizeof(T);
 		ret = lseek(fdInput, 0, SEEK_SET);
 		if (ret == -1) util::checkReturn("getting file length", errno);
 	}
@@ -93,10 +93,13 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 		}
 
 		size_t tempFileSize = size * sizeof(T);
-		util::checkReturn("allocating chunk tempfile",
+		util::checkReturn("allocating chunk tempfile for " +
+			to_string(tempFileSize / (1024*1024)) + "MB",
 			posix_fallocate(fdTemp, 0, static_cast<off_t>(tempFileSize)));
 
+		cout << "step 1: sorting batches..." << endl;
 		stepSort(fdInput);
+		cout << "step 2: merging " << numChunks << " batches..." << endl;
 		stepMerge(fdOutput);
 
 		util::checkReturn("closing temp file", close(fdTemp));
@@ -123,6 +126,8 @@ void Sorter::stepSort(int fdInput) {
 			elementsSorted < size) {
 		auto bytesRead = static_cast<size_t>(bRead);
 
+		cout << "batch " << numChunks << "... " << flush;
+
 		// limit to size
 		uint64_t elementsRead = static_cast<uint64_t>(bytesRead) / sizeof(T);
 		elementsRead = min(elementsRead, size - elementsSorted);
@@ -132,11 +137,13 @@ void Sorter::stepSort(int fdInput) {
 		auto end = buffer.begin() + static_cast<int64_t>(elementsRead);
 		sort(begin, end);
 
+		cout << "writing... "  << flush;
 		// write chunk to temp file
 		auto written = write(fdTemp, &buffer[0], bytesRead);
 		if (written < 0) {
 			util::checkReturn("writing chunk to tempfile", errno);
 		}
+		cout << "done." << endl;
 
 		chunkPositions.push_back(elementsSorted);
 		numChunks++;
@@ -224,7 +231,9 @@ void Sorter::stepMerge(int fdOutput) {
 				util::checkReturn("writing output", errno);
 			}
 			buffer.resize(0);
+#ifdef DEBUG
 			cout << endl;
+#endif
 		}
 
 		auto chunkInd = el.second;
