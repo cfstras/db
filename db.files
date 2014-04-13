@@ -10,3 +10,6 @@ db.sublime-workspace
 README.md
 small.bin
 sort.bin
+test/dummy.cpp
+test/main.cpp
+test/sort.cpp
