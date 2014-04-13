@@ -11,24 +11,35 @@
 
 using namespace std;
 
-int testSort();
+int doSort(char* inFile, char* outFile, uint64_t bufferMB);
 
-int main() {
-	cout << "Hello, World!" << endl;
+void help();
 
-	return testSort();
+int main(int argc, char** argv) {
+	if (argc != 4) {
+		help();
+		return 1;
+	}
+	int64_t buf = atoll(argv[3]);
+	if (buf <= 0) { help(); return 1; }
+	return doSort(argv[1], argv[2], static_cast<uint64_t>(buf));
 }
 
-int testSort() {
-	int in = open("small.bin", O_RDONLY);
-	int out = open("sort.bin", O_WRONLY | O_CREAT | O_TRUNC, 0700);
+void help() {
+	cout << "Aufruf:" << endl <<
+			"\tsort <inputFile> <outputFile> <memoryBufferInMB>" << endl;
+}
+
+int doSort(char* inFile, char* outFile, uint64_t bufferMB) {
+	int in = open(inFile, O_RDONLY);
+	int out = open(outFile, O_WRONLY | O_CREAT | O_TRUNC, 0700);
 	if (in == -1) {
 		util::checkReturn("opening input", errno);
 	}
 	if (out == -1) {
 		util::checkReturn("opening output", errno);
 	}
-    externalSort(in, 40, out, 5 * 8);
+	externalSort(in, UINT64_MAX, out, bufferMB * 1024 * 1024);
 
 	util::checkReturn("closing input", close(in));
 	util::checkReturn("closing output", close(out));

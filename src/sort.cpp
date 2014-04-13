@@ -73,25 +73,38 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 		buffers(0),
 		buffersPos(0) {
 
-	//TODO the length should be less, since our sorting algorithm and prio-queue
-	// take up space, too.
+	//TODO the length should be less, since our sorting algorithm takes up space, too.
 
-	// create temp file
-	char tmpFilename[] ="externalsort-XXXXXX";
-	fdTemp = mkstemp(tmpFilename);
-	if (fdTemp == -1) {
-		util::checkReturn("creating chunk tempfile", errno);
+	// I am guessing that nobody actually wants to sort 2^64 integers.
+	if(size == UINT64_MAX) {
+		auto ret = lseek(fdInput, 0, SEEK_END);
+		if (ret == -1 ) util::checkReturn("getting file length", errno);
+		size = static_cast<uint64_t>(ret);
+		ret = lseek(fdInput, 0, SEEK_SET);
+		if (ret == -1) util::checkReturn("getting file length", errno);
 	}
 
-	size_t tempFileSize = size * sizeof(T);
-	util::checkReturn("allocating chunk tempfile",
-		posix_fallocate(fdTemp, 0, static_cast<off_t>(tempFileSize)));
+	char tmpFilename[] ="externalsort-XXXXXX";
+	try {
+		// create temp file
+		fdTemp = mkstemp(tmpFilename);
+		if (fdTemp == -1) {
+			util::checkReturn("creating chunk tempfile", errno);
+		}
 
-	stepSort(fdInput);
-	stepMerge(fdOutput);
+		size_t tempFileSize = size * sizeof(T);
+		util::checkReturn("allocating chunk tempfile",
+			posix_fallocate(fdTemp, 0, static_cast<off_t>(tempFileSize)));
 
-	util::checkReturn("closing temp file", close(fdTemp));
-	util::checkReturn("deleting temp file", unlink(tmpFilename));
+		stepSort(fdInput);
+		stepMerge(fdOutput);
+
+		util::checkReturn("closing temp file", close(fdTemp));
+		util::checkReturn("deleting temp file", unlink(tmpFilename));
+	} catch (exception e) {
+		unlink(tmpFilename);
+		throw e;
+	}
 }
 
 void Sorter::stepSort(int fdInput) {
