@@ -58,6 +58,8 @@ private:
 	// head positions of those buffers
 	vector<size_t> buffersPos;
 
+	uint64_t percent;
+
 	int fdTemp;
 };
 
@@ -72,7 +74,8 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 		buffer(chunkLength),
 		numChunks(0),
 		buffers(0),
-		buffersPos(0) {
+		buffersPos(0),
+		percent(0) {
 
 	//TODO the length should be less, since our sorting algorithm takes up space, too.
 
@@ -234,7 +237,12 @@ void Sorter::stepMerge(int fdOutput) {
 			}
 			elementsSorted += buffer.size();
 			buffer.resize(0);
-			cout << "merged " << elementsSorted << "/" << size << endl;
+
+			if (percent < (elementsSorted * 100 / size)) {
+				percent = (elementsSorted * 100 / size);
+				cout << "merged " << percent << "%, "<< elementsSorted <<
+					"/" << size << endl;
+			}
 #ifdef DEBUG
 			cout << endl;
 #endif
