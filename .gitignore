@@ -6,3 +6,5 @@ build_test/
 *.bin
 .tags
 .tags_sorted_by_file
+*.user
+*.user.*
