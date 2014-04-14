@@ -28,7 +28,8 @@ struct PairCompare {
 
 class Sorter {
 public:
-	Sorter(int fdInput, uint64_t size, int fdOutput, uint64_t memSize);
+	Sorter(uint64_t size, uint64_t memSize);
+	void doSort(int fdInput, int fdOutput);
 
 private:
 	void stepSort(int fdInput);
@@ -58,14 +59,16 @@ private:
 	// head positions of those buffers
 	vector<size_t> buffersPos;
 
+#ifndef SILENT
 	uint64_t percent;
+#endif
 
 	int fdTemp;
 };
 
 static const size_t outBufferSize = 8*1024;
 
-Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
+Sorter::Sorter(uint64_t _size, uint64_t _memSize) :
 		chunkPositions(),
 		memSize(_memSize),
 		size(_size),
@@ -74,9 +77,13 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 		buffer(chunkLength),
 		numChunks(0),
 		buffers(0),
-		buffersPos(0),
-		percent(0) {
+		buffersPos(0)
+#ifndef SILENT
+		, percent(0)
+#endif
+		{}
 
+void Sorter::doSort(int fdInput, int fdOutput) {
 	//TODO the length should be less, since our sorting algorithm takes up space, too.
 
 	// I am guessing that nobody actually wants to sort 2^64 integers.
@@ -86,6 +93,9 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 		size = static_cast<uint64_t>(ret) / sizeof(T);
 		ret = lseek(fdInput, 0, SEEK_SET);
 		if (ret == -1) util::checkReturn("getting file length", errno);
+	} else if (size == 0) {
+		// well, we're done here.
+		return;
 	}
 
 	char tmpFilename[] ="externalsort-XXXXXX";
@@ -97,7 +107,7 @@ Sorter::Sorter(int fdInput, uint64_t _size, int fdOutput, uint64_t _memSize) :
 	unlink(tmpFilename);
 
 	size_t tempFileSize = size * sizeof(T);
-	util::checkReturn("allocating chunk tempfile for " +
+	util::checkReturn("allocating chunk tempfile, " +
 		to_string(tempFileSize / (1024*1024)) + "MB",
 		posix_fallocate(fdTemp, 0, static_cast<off_t>(tempFileSize)));
 #ifndef SILENT
@@ -274,6 +284,10 @@ size_t Sorter::fillBuffer(size_t chunkInd) {
 		chunkLen = size - chunkPositions[chunkInd];
 	}
 	chunkLen = min(bufferSize / sizeof(T), chunkLen);
+	if (chunkLen == 0) {
+		return 0;
+	}
+
 	auto &buf = buffers[chunkInd];
 	buf.resize(chunkLen);
 
@@ -291,12 +305,11 @@ size_t Sorter::fillBuffer(size_t chunkInd) {
 }
 
 bool Sorter::fillQueue(size_t chunkInd, size_t count) {
-	if (chunkPositions[chunkInd] < chunkLength*(chunkInd+1) &&
-			buffersPos[chunkInd] >= buffers[chunkInd].size()) {
-        if (fillBuffer(chunkInd) == 0) {return false;} // chunk is done
-	} else if (chunkPositions[chunkInd] >= chunkLength*(chunkInd+1) &&
-			   buffersPos[chunkInd] >= buffers[chunkInd].size()) {
-		return false; //nope, chunk is done.
+	if (buffersPos[chunkInd] >= buffers[chunkInd].size()) {
+		if (fillBuffer(chunkInd) == 0) {
+			// chunk is done
+			return false;
+		}
 	}
 	auto maxBufferPos = buffersPos[chunkInd] + count;
 	for (size_t i = buffersPos[chunkInd]; i < maxBufferPos; i++) {
@@ -313,5 +326,5 @@ bool Sorter::fillQueue(size_t chunkInd, size_t count) {
 } // namespace
 
 void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
-	Sorter(fdInput, size, fdOutput, memSize);
+	Sorter(size, memSize).doSort(fdInput, fdOutput);
 }
