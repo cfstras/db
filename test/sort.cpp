@@ -21,23 +21,19 @@ protected:
 
 	SortTest() : generatorBin( "datagenerator/gen") {
 		char str[] = "externalsort-test-XXXXXX";
-		fdTempUnsorted = mkstemp(str);
+		auto fdTempUnsorted = mkstemp(str);
 		unsortedFile = str;
 		close(fdTempUnsorted);
-		open(fdTempUnsorted);
-		unlink(unsortedFile.c_str());
 
 		char strS[] = "externalsort-test-XXXXXX";
-		fdTempSorted = mkstemp(strS);
+		auto fdTempSorted = mkstemp(strS);
 		sortedFile = strS;
 		close(fdTempSorted);
-		open(fdTempSorted);
-		unlink(sortedFile.c_str());
 	}
 
 	virtual void TearDown() {
-		close(fdTempUnSorted);
-		close(fdTempSorted)
+		unlink(sortedFile.c_str());
+		unlink(unsortedFile.c_str());
 	}
 
 	int generate(uint64_t num) {
@@ -82,8 +78,6 @@ protected:
 
 	string unsortedFile, sortedFile;
 	string generatorBin;
-
-	int fdTempUnsorted, fdTempSorted;
 };
 
 TEST_F(SortTest, Generator) {

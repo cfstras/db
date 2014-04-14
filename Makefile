@@ -11,7 +11,7 @@ GTEST_LIB		= $(OBJDIR)_test/libgtest.a
 
 CXX 			= clang++
 DEBUG			= -O0 -DDEBUG
-OPTIMIZED		= -O3
+OPTIMIZED		= -O4
 CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -Weverything -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
 LDFLAGS			=
 TEST_CXXFLAGS	= $(CXXFLAGS) -isystem $(GTESTDIR)/include -pthread
@@ -65,7 +65,7 @@ build: dir $(OBJS) $(BINDIR)/$(BINARY)
 $(BINDIR)/$(BINARY): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $(BINDIR)/$(BINARY)
 
-build-test: CXXFLAGS+= -DSILENT -O2
+build-test: CXXFLAGS+= -DSILENT -O2 -fno-omit-frame-pointer
 build-test: dir datagen $(GTEST_LIB) $(OBJS) $(OBJS_TEST) $(BINDIR)/test_$(BINARY)
 
 $(BINDIR)/test_$(BINARY): $(OBJS_TEST) $(GTEST_LIB)
