@@ -65,7 +65,7 @@ build: dir $(OBJS) $(BINDIR)/$(BINARY)
 $(BINDIR)/$(BINARY): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $(BINDIR)/$(BINARY)
 
-build-test: CXXFLAGS+= -DSILENT
+build-test: CXXFLAGS+= -DSILENT -O2
 build-test: dir datagen $(GTEST_LIB) $(OBJS) $(OBJS_TEST) $(BINDIR)/test_$(BINARY)
 
 $(BINDIR)/test_$(BINARY): $(OBJS_TEST) $(GTEST_LIB)
