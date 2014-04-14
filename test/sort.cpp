@@ -109,6 +109,14 @@ TEST_F(SortTest, SortBig) {
 	sortTest(2048, 512 * 8);
 }
 
+TEST_F(SortTest, SortMany) {
+	sortTest(2048, 32 * 8);
+}
+
+TEST_F(SortTest, SortNothing) {
+	sortTest(0, 32 * 8);
+}
+
 TEST_F(SortTest, SortHuge) {
 	sortTest(1024 * 1024 * 1024 * 5 / 8, // 5GiB data
 		1024 * 1024 * 1024); // 1GiB Memory
