@@ -12,7 +12,7 @@ GTEST_LIB		= $(OBJDIR)_test/libgtest.a
 CXX 			= clang++
 DEBUG			= -O0 -DDEBUG
 OPTIMIZED		= -O3
-CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -Weverything -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
+CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -Wall -Werror -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
 LDFLAGS			=
 TEST_CXXFLAGS	= $(CXXFLAGS) -isystem $(GTESTDIR)/include -pthread
 TEST_LDFLAGS	= $(LDFLAGS) $(GTEST_LIB)

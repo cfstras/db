@@ -44,7 +44,7 @@ protected:
 	void checkOrder(int fdInput, uint64_t size) {
 		size_t bufSize = 1024;
 		vector<uint64_t> buf(bufSize);
-		uint64_t bufPos = 0, num = 0, maxNum = 1, last = 0;
+		uint64_t bufPos = 0, num = 0, last = 0;
 		for (;num < size; num++) {
 			if (++bufPos == bufSize || num == 0) {
 				bufPos = 0;
