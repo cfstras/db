@@ -11,25 +11,40 @@ GTEST_LIB		= $(OBJDIR)_test/libgtest.a
 
 CXX 			= clang++
 DEBUG			= -O0 -DDEBUG
-OPTIMIZED		= -O4
+OPTIMIZED		= -O3
 CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -Weverything -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
 LDFLAGS			=
 TEST_CXXFLAGS	= $(CXXFLAGS) -isystem $(GTESTDIR)/include -pthread
 TEST_LDFLAGS	= $(LDFLAGS) $(GTEST_LIB)
 
 
-all: build-debug
+all: build-test
 
 debug: build-debug
 	gdb --args $(BINDIR)/$(BINARY)
 
 build-debug: CXXFLAGS += $(DEBUG)
-build-debug: build
+build-debug:
+	[ -f $(OBJDIR)/OPTIMIZED ] && make clean; true
+	[ -f $(OBJDIR)/DEBUG ] || make clean; true
+	make dir
+	touch $(OBJDIR)/DEBUG
+	make build
 
-test: build-test
+.PHONY: test
+test:
+	[ -f $(OBJDIR)/OPTIMIZED ] && make clean; true
+	[ -f $(OBJDIR)/DEBUG ] && make clean; true
+	make build-test
 	$(BINDIR)/test_$(BINARY)
 
-opt: clean do-opt
+.PHONY: opt
+opt:
+	[ -f $(OBJDIR)/OPTIMIZED ] || make clean; true
+	[ -f $(OBJDIR)/DEBUG ] && make clean; true
+	make dir
+	touch $(OBJDIR)/OPTIMIZED
+	make do-opt
 
 do-opt: CXXFLAGS += $(OPTIMIZED)
 do-opt: build
@@ -65,7 +80,7 @@ build: dir $(OBJS) $(BINDIR)/$(BINARY)
 $(BINDIR)/$(BINARY): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $(BINDIR)/$(BINARY)
 
-build-test: CXXFLAGS+= -DSILENT -O2 -fno-omit-frame-pointer
+build-test: CXXFLAGS+= -DSILENT -O2
 build-test: dir datagen $(GTEST_LIB) $(OBJS) $(OBJS_TEST) $(BINDIR)/test_$(BINARY)
 
 $(BINDIR)/test_$(BINARY): $(OBJS_TEST) $(GTEST_LIB)
