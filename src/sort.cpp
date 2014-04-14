@@ -28,15 +28,18 @@ struct PairCompare {
 
 class Sorter {
 public:
-	Sorter(uint64_t size, uint64_t memSize);
-	void doSort(int fdInput, int fdOutput);
+	Sorter(int fdInput, uint64_t size, int fdOutput, uint64_t memSize);
+	void doSort();
 
 private:
-	void stepSort(int fdInput);
-	void stepMerge(int fdOutput);
+	void stepSort();
+	void stepMerge();
 
+	void flushOutBuffer();
 	size_t fillBuffer(size_t chunkInd);
 	bool fillQueue(size_t chunkInd, size_t limit);
+
+	int fdInput, fdTemp, fdOutput;
 
 	// chunk starting offsets
 	// get moved in merge step buffer refill
@@ -59,16 +62,17 @@ private:
 	// head positions of those buffers
 	vector<size_t> buffersPos;
 
+	uint64_t elementsSorted;
+
 #ifndef SILENT
 	uint64_t percent;
 #endif
-
-	int fdTemp;
 };
 
 static const size_t outBufferSize = 8*1024;
 
-Sorter::Sorter(uint64_t _size, uint64_t _memSize) :
+Sorter::Sorter(int _fdInput, uint64_t _size, int _fdOutput, uint64_t _memSize) :
+		fdInput(_fdInput), fdOutput(_fdOutput),
 		chunkPositions(),
 		memSize(_memSize),
 		size(_size),
@@ -79,11 +83,11 @@ Sorter::Sorter(uint64_t _size, uint64_t _memSize) :
 		buffers(0),
 		buffersPos(0)
 #ifndef SILENT
-		, percent(0)
+		,percent(0)
 #endif
 		{}
 
-void Sorter::doSort(int fdInput, int fdOutput) {
+void Sorter::doSort() {
 	//TODO the length should be less, since our sorting algorithm takes up space, too.
 
 	// I am guessing that nobody actually wants to sort 2^64 integers.
@@ -113,16 +117,16 @@ void Sorter::doSort(int fdInput, int fdOutput) {
 #ifndef SILENT
 	cout << "step 1: sorting batches..." << endl;
 #endif
-	stepSort(fdInput);
+	stepSort();
 #ifndef SILENT
 	cout << "step 2: merging " << numChunks << " batches..." << endl;
 #endif
-	stepMerge(fdOutput);
+	stepMerge();
 
 	util::checkReturn("closing temp file", close(fdTemp));
 }
 
-void Sorter::stepSort(int fdInput) {
+void Sorter::stepSort() {
 	// save the positions (as index) of the chunk starting points
 	chunkPositions.reserve(size * sizeof(T) / memSize);
 
@@ -132,7 +136,7 @@ void Sorter::stepSort(int fdInput) {
 
 	// sort chunks
 	ssize_t bRead;
-	uint64_t elementsSorted = 0;
+	elementsSorted = 0;
 	size_t maxChunkBytes = chunkLength*sizeof(T);
 	while ((bRead = read(fdInput, &buffer[0], maxChunkBytes)) > 0 &&
 			elementsSorted < size) {
@@ -180,10 +184,10 @@ void Sorter::stepSort(int fdInput) {
 	}
 }
 
-void Sorter::stepMerge(int fdOutput) {
+void Sorter::stepMerge() {
 	// now merge.
 
-	uint64_t elementsSorted = 0;
+	elementsSorted = 0;
 	// ensure some space in the output file
 	off_t offset = lseek(fdOutput, 0, SEEK_CUR);
 	util::checkReturn("allocating output space",
@@ -240,18 +244,15 @@ void Sorter::stepMerge(int fdOutput) {
 	while (!queue.empty()) {
 		auto el = queue.top();
 		queue.pop();
-#ifdef DEBUG
-		cout << "emit "<< el.second << ": " << el.first << endl;
-#endif
-		buffer.push_back(el.first);
-		if (buffer.size() == outBufferLen) {
-			auto written = write(fdOutput, &buffer[0], outBufferSize);
-			if (written == -1) {
-				util::checkReturn("writing output", errno);
-			}
-			elementsSorted += buffer.size();
-			buffer.resize(0);
+		auto value = el.first;
+		auto chunkInd = el.second;
 
+#ifdef DEBUG
+		cout << "emit "<< chunkInd << ": " << value << endl;
+#endif
+		buffer.push_back(value);
+		if (buffer.size() == outBufferLen) {
+			flushOutBuffer();
 #ifndef SILENT
 			if (percent < (elementsSorted * 100 / size)) {
 				percent = (elementsSorted * 100 / size);
@@ -263,26 +264,26 @@ void Sorter::stepMerge(int fdOutput) {
 			cout << endl;
 #endif
 		}
-
-		auto chunkInd = el.second;
-
 		// queue another item if left in chunk
 		fillQueue(chunkInd, 1);
 	}
-	// flush
+	flushOutBuffer();
+}
+
+void Sorter::flushOutBuffer() {
+	if (buffer.size() == 0) return;
+
 	auto written = write(fdOutput, &buffer[0], buffer.size() * sizeof(T));
 	if (written == -1) {
 		util::checkReturn("writing output", errno);
 	}
+	elementsSorted += buffer.size();
+	buffer.resize(0);
 }
 
 size_t Sorter::fillBuffer(size_t chunkInd) {
 	size_t chunkLen;
-	if (chunkInd+1 < numChunks) {
-		chunkLen = chunkLength*(chunkInd+1) - chunkPositions[chunkInd];
-	} else {
-		chunkLen = size - chunkPositions[chunkInd];
-	}
+	chunkLen = chunkLength*(chunkInd+1) - chunkPositions[chunkInd];
 	chunkLen = min(bufferSize / sizeof(T), chunkLen);
 	if (chunkLen == 0) {
 		return 0;
@@ -326,5 +327,5 @@ bool Sorter::fillQueue(size_t chunkInd, size_t count) {
 } // namespace
 
 void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
-	Sorter(size, memSize).doSort(fdInput, fdOutput);
+	Sorter(fdInput, size, fdOutput, memSize).doSort();
 }
