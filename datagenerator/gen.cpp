@@ -33,21 +33,18 @@ int main(int argc, char* argv[]) {
 	}
 	RandomLong rand;
 	unsigned n = atoi(argv[2]);
-	if (n==0) {
-		std::cerr << "invalid length: " << argv[2] << std::endl;
-		return -1;
-	}
 	int fd, ret;
 	if ((fd = open(argv[1], O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0) {
 		std::cerr << "cannot open file '" << argv[1] << "': " << strerror(errno) << std::endl;
 		return -1;
 	}
+	if (n != 0) {
 #ifndef SILENT
-	cout << "allocating space" << endl;
+		cout << "allocating space" << endl;
 #endif
-	if ((ret = posix_fallocate(fd, 0, n*sizeof(uint64_t))) != 0)
-		std::cerr << "warning: could not allocate file space: " << strerror(ret) << std::endl;
-
+		if ((ret = posix_fallocate(fd, 0, n*sizeof(uint64_t))) != 0)
+			std::cerr << "warning: could not allocate file space: " << strerror(ret) << std::endl;
+	}
 #ifndef SILENT
 	cout << "writing" << endl;
 	uint64_t percent = 0;
