@@ -27,27 +27,27 @@ build-debug: CXXFLAGS += $(DEBUG)
 build-debug:
 	[ -f $(OBJDIR)/OPTIMIZED ] && make clean; true
 	[ -f $(OBJDIR)/DEBUG ] || make clean; true
-	make dir
+	@make dir
 	touch $(OBJDIR)/DEBUG
-	make build
+	@make build
 
 .PHONY: test
 test:
 	[ -f $(OBJDIR)/OPTIMIZED ] && make clean; true
 	[ -f $(OBJDIR)/DEBUG ] && make clean; true
-	make build-test
+	@make build-test
 	$(BINDIR)/test_$(BINARY)
 
 .PHONY: opt
 opt:
 	[ -f $(OBJDIR)/OPTIMIZED ] || make clean; true
 	[ -f $(OBJDIR)/DEBUG ] && make clean; true
-	make dir
+	@make dir
 	touch $(OBJDIR)/OPTIMIZED
-	make do-opt
+	@make build-opt
 
-do-opt: CXXFLAGS += $(OPTIMIZED)
-do-opt: build
+build-opt: CXXFLAGS += $(OPTIMIZED)
+build-opt: build
 
 run: build
 	$(BINDIR)/$(BINARY)
@@ -60,15 +60,16 @@ clean:
 	\rm -f externalsort-*
 
 dir:
-	mkdir -p $(BINDIR)
-	cd $(SRCDIR) && find -type d -exec mkdir -p ../$(OBJDIR)/{} \;
-	cd $(TESTDIR) && find -type d -exec mkdir -p ../$(OBJDIR)_test/{} \;
+	@mkdir -p $(BINDIR)
+	@cd $(SRCDIR) && find -type d -exec mkdir -p ../$(OBJDIR)/{} \;
+	@cd $(TESTDIR) && find -type d -exec mkdir -p ../$(OBJDIR)_test/{} \;
 
 .PHONY: datagen
 datagen:
 	make -C datagenerator silent
 
 SRCS = $(shell cd $(SRCDIR) && find . -type f -name "*.cpp")
+
 TESTSRCS = $(shell cd $(TESTDIR) && find . -type f -name "*.cpp")
 
 OBJS = $(SRCS:%.cpp=$(OBJDIR)/%.o)
