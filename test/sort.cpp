@@ -80,6 +80,8 @@ protected:
 	string generatorBin;
 };
 
+const uint64_t MEG = 1024*1024;
+
 TEST_F(SortTest, Generator) {
 	EXPECT_EQ(0, generate(1)) << "DataGenerator failed to run";
 }
@@ -112,13 +114,22 @@ TEST_F(SortTest, SortMany) {
 	sortTest(2048, 32 * 8);
 }
 
+TEST_F(SortTest, SortMuchRam) {
+	sortTest(8, MEG * 1024 * 2);
+}
+
 TEST_F(SortTest, SortNothing) {
 	sortTest(0, 32 * 8);
 }
 
+TEST_F(SortTest, Sort500) {
+	sortTest(1024 * 1024 * 512 / 8, // 500M data
+		MEG * 1024 * 1); // 2GiB Memory
+}
+/*
 TEST_F(SortTest, SortHuge) {
 	sortTest(1024 * 1024 * 1024 * 5 / 8, // 5GiB data
 		1024 * 1024 * 1024); // 1GiB Memory
-}
+}*/
 
 } // namespace
