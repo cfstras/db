@@ -9,7 +9,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-
 #include "sort.h"
 
 using namespace std;
@@ -122,8 +121,8 @@ TEST_F(SortTest, SortNothing) {
 	sortTest(0, 32 * 8);
 }
 
-TEST_F(SortTest, Sort500) {
-	sortTest(1024 * 1024 * 512 / 8, // 500M data
+TEST_F(SortTest, Sort128) {
+	sortTest(1024 * 1024 * 128 / 8, // 500M data
 		MEG * 1024 * 1); // 2GiB Memory
 }
 /*
