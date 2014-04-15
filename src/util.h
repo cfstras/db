@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #if !defined(UINT64_MAX)
 #define __STDC_LIMIT_MACROS
 # define UINT64_MAX		0xffffffffffffffffULL
@@ -17,3 +17,9 @@ namespace util {
 void checkReturn(std::string what, int err);
 
 } // namespace
+
+// A macro to disallow the copy constructor and operator= functions
+// This should be used in the private: declarations for a class
+#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
+  TypeName(const TypeName&);               \
+  void operator=(const TypeName&)
