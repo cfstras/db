@@ -284,7 +284,8 @@ void Sorter::flushOutBuffer() {
 size_t Sorter::fillBuffer(size_t chunkInd) {
 	size_t chunkLen;
 	chunkLen = chunkLength*(chunkInd+1) - chunkPositions[chunkInd];
-	chunkLen = min(bufferSize / sizeof(T), chunkLen);
+	chunkLen = min(chunkLen, bufferSize / sizeof(T));
+	chunkLen = min(chunkLen, size - chunkPositions[chunkInd]);
 	if (chunkLen == 0) {
 		return 0;
 	}
