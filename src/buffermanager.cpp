@@ -13,13 +13,13 @@ BufferManager::BufferManager(unsigned size) :
 	slots(size)
 {
 	// check for files
-	srand(time(0))
+	srand(time(0));
 }
 
 BufferManager::~BufferManager() {
-	for(const auto *BufferFrame frame : slots) {
-		if (frame != nullptr) {
-			delete frame;
+	for(const auto &entry : slots) {
+		if (entry.second != nullptr) {
+			delete entry.second;
 		}
 	}
 }
@@ -34,39 +34,39 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 	if (it == slots.end()) {
 		// make a new one
 		if (slots.size() >= size_) {
-			freePage()
+			freePage();
 		}
-		frame = new BufferFrame;
+		frame = new BufferFrame();
 	} else {
-		frame = *it;
+		frame = it->second;
 	}
 
 	// check if it is fixed
 	if (frame->fixed()) {
 		// this frame is already in use!
 		//TODO what to do?
-		return nullptr;
+		throw exception();
 	}
 
 	if (frame->pageId() != pageId) {
 		// flush this page NOW
-		flushNow(frame);
+		flushNow(*frame);
 
 		// load the correct one
-		load(frame, pageId);
+		load(*frame, pageId);
 	}
 
 	slots[pageId] = frame;
-	return frame;
+	return *frame;
 }
 
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
-	frame->dirty_ |= isDirty;
+	frame.dirty_ |= isDirty;
 	queueFlush(frame);
 }
 
 void BufferManager::load(BufferFrame& frame, uint64_t pageId) {
-	frame->pageId_ = pageId;
+	frame.pageId_ = pageId;
 	//TODO
 }
 
@@ -82,11 +82,11 @@ void BufferManager::queueFlush(BufferFrame& frame) {
 void BufferManager::freePage() { // free page! what did he do wrong?
 	// get random element
 	auto it = slots.begin();
-	advance(it, rand(slots.size()));
-	auto frame = *it;
+	advance(it, rand() % slots.size());
+	BufferFrame* frame = it->second;
 	slots.erase(it);
 
-	flushNow(frame);
+	flushNow(*frame);
 	delete frame;
 }
 

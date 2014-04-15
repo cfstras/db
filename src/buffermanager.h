@@ -5,12 +5,7 @@
 #include <cstdint>
 
 #include "util.h"
-
-#ifndef PAGE_SIZE
-#	define PAGE_SIZE 4096
-#endif
-
-class BufferFrame;
+#include "bufferframe.h"
 
 class BufferManager {
 public:

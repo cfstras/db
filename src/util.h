@@ -6,6 +6,10 @@
 # define UINT64_MAX		0xffffffffffffffffULL
 #endif
 
+#ifndef PAGE_SIZE
+#	define PAGE_SIZE 4096
+#endif
+
 #include <string>
 
 namespace util {

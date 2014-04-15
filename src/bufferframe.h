@@ -41,5 +41,11 @@ private:
 	 */
 	bool fixed_;
 
+	/**
+	 * Whether this frame has dirty data in it.
+	 * If true, this frame needs to be flushed to disk when it gets deleted.
+	 */
+	bool dirty_;
+
 	friend BufferManager;
 };

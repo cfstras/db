@@ -1,12 +1,18 @@
 #include "bufferframe.h"
 
+using namespace std;
+
 BufferFrame::BufferFrame() :
 	pageId_(0),
-	fixed_(false)
+	fixed_(false),
+	dirty_(false)
 {
-	data = malloc(PAGE_SIZE);
+	data_ = malloc(PAGE_SIZE);
 }
 
 BufferFrame::~BufferFrame() {
-	free data;
+	if (dirty_) {
+		//TODO this should never happen!!!
+	}
+	free(data_);
 }
