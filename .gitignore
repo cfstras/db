@@ -2,6 +2,7 @@
 bin/
 build/
 build_test/
+data/
 *.sublime-workspace
 *.bin
 .tags
