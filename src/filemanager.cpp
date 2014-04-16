@@ -39,6 +39,7 @@ FileManager::FileManager(string basePath) : basePath_(basePath) {
 FileManager::~FileManager() {
 	//TODO Tell BufferManager to close all chunks and get lost
 
+	cout << "closing files." << endl;
 	// close all files
 	for (auto it = openFiles.begin(); it != openFiles.end(); it++) {
 		int ret = close(it->second);
@@ -79,7 +80,7 @@ int FileManager::getFile(uint64_t pageId) {
 		throw exception(); //TODO prettier exceptions
 	}
 
-	int fd = open(path.c_str(), O_RDWR | O_CREAT | O_DIRECT | O_SYNC, 0700);
+	int fd = open(path.c_str(), O_RDWR | O_CREAT | O_SYNC, 0700);
 	if (fd == -1) util::checkReturn("opening chunk file "+path, errno);
 	openFiles.emplace(chunk, fd);
 	return fd;

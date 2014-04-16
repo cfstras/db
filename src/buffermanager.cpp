@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "bufferframe.h"
 #include "filemanager.h"
@@ -70,15 +71,17 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
 	queueFlush(frame);
 }
 
+uint64_t BufferManager::offset(uint64_t pageId) {
+	return PAGE_SIZE * (pageId & 0x0000ffffffffffffULL);
+}
+
 void BufferManager::load(BufferFrame& frame, uint64_t pageId) {
 	frame.pageId_ = pageId;
 	// first two bytes are the chunk id
-	size_t offset = pageId & 0x0000ffffffffffff;
 	int fd = FileManager::instance()->getFile(pageId);
-	auto bytes = pread(fd, frame.getData(), PAGE_SIZE, offset);
+	auto bytes = pread(fd, frame.getData(), PAGE_SIZE, offset(pageId));
 	if (bytes == -1) {
-		util::checkReturn("loading page "+to_string(pageId)+" from file "+
-			to_string(pageId), errno);
+		util::checkReturn("loading page "+to_string(pageId), errno);
 	} else if (bytes != PAGE_SIZE) {
 		// this should only happen when the file is shorter than requested.
 		// as the file will get the correct size once we flush, just do nothing here.
@@ -86,7 +89,21 @@ void BufferManager::load(BufferFrame& frame, uint64_t pageId) {
 }
 
 void BufferManager::flushNow(BufferFrame& frame) {
-	//TODO
+	auto pageId = frame.pageId();
+	int fd = FileManager::instance()->getFile(pageId);
+
+	auto ret = posix_fallocate(fd, offset(pageId), PAGE_SIZE);
+	util::checkReturn("allocating space for page "+to_string(pageId), ret);
+
+	auto bytes = pwrite(fd, frame.getData(), PAGE_SIZE, offset(pageId));
+	if (bytes == -1) {
+		util::checkReturn("saving page "+to_string(pageId), errno);
+	} else if (bytes != PAGE_SIZE) {
+		// oh no!
+		//TODO prettier exceptions
+		throw exception();
+	}
+	frame.dirty_ = false;
 }
 
 void BufferManager::queueFlush(BufferFrame& frame) {

@@ -45,6 +45,8 @@ private:
 
 	void load(BufferFrame& frame, uint64_t pageId);
 
+	uint64_t offset(uint64_t pageId);
+
 	/**
 	 * Frees a loaded, unfixed page
 	 */
