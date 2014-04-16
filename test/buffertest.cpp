@@ -127,6 +127,6 @@ void test(unsigned pagesDisk, unsigned pagesRam, unsigned nThreads) {
 	EXPECT_EQ(totalCount, totalCountOnDisk) << "error: expected " << totalCount << " but got " << totalCountOnDisk;
 }
 
-TEST(BufferManagerTest, Simple) {
+TEST(BufferManagerTest, Concurrent) {
 	test(16, 16, 1);
 }
