@@ -3,8 +3,10 @@
 #include <map>
 #include <cstdlib>
 #include <ctime>
+#include <unistd.h>
 
 #include "bufferframe.h"
+#include "filemanager.h"
 
 using namespace std;
 
@@ -26,7 +28,6 @@ BufferManager::~BufferManager() {
 
 
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
-	//TODO
 	//TODO thread-safety
 	auto it = slots.find(pageId);
 	BufferFrame *frame;
@@ -56,18 +57,30 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 		load(*frame, pageId);
 	}
 
+	frame->fixed_ = true;
 	slots[pageId] = frame;
 	return *frame;
 }
 
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
 	frame.dirty_ |= isDirty;
+	frame.fixed_ = false;
 	queueFlush(frame);
 }
 
 void BufferManager::load(BufferFrame& frame, uint64_t pageId) {
 	frame.pageId_ = pageId;
-	//TODO
+	// first two bytes are the chunk id
+	size_t offset = pageId & 0x0000ffffffffffff;
+	int fd = FileManager::instance()->getFile(pageId);
+	auto bytes = pread(fd, frame.getData(), PAGE_SIZE, offset);
+	if (bytes == -1) {
+		util::checkReturn("loading page "+to_string(pageId)+" from file "+
+			to_string(pageId), errno);
+	} else if (bytes != PAGE_SIZE) {
+		// this should only happen when the file is shorter than requested.
+		// as the file will get the correct size once we flush, just do nothing here.
+	}
 }
 
 void BufferManager::flushNow(BufferFrame& frame) {
