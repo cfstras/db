@@ -20,6 +20,7 @@ private:
 	~FileManager();
 
 	static void deconstruct(int param);
+	static void deconstruct();
 
 	static FileManager* instance_;
 

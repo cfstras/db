@@ -19,6 +19,7 @@ public:
 	uint64_t pageId() {return pageId_;}
 
 	bool fixed() {return fixed_;}
+	bool dirty() {return dirty_;}
 
 private:
 	DISALLOW_COPY_AND_ASSIGN(BufferFrame);

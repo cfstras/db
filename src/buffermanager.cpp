@@ -20,8 +20,15 @@ BufferManager::BufferManager(unsigned size) :
 
 BufferManager::~BufferManager() {
 	for(const auto &entry : slots) {
-		if (entry.second != nullptr) {
-			delete entry.second;
+		BufferFrame* f = entry.second;
+		if (f != nullptr) {
+			if (f->fixed()) {
+				throw exception(); //TODO oh no!
+			}
+			if (f->dirty()) {
+				flushNow(*f);
+			}
+			delete f;
 		}
 	}
 }
@@ -29,6 +36,7 @@ BufferManager::~BufferManager() {
 
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 	//TODO thread-safety
+	//TODO currently, all is exclusive
 	auto it = slots.find(pageId);
 	BufferFrame *frame;
 
@@ -38,6 +46,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 			freePage();
 		}
 		frame = new BufferFrame();
+		load(*frame, pageId);
 	} else {
 		frame = it->second;
 	}
@@ -45,16 +54,8 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 	// check if it is fixed
 	if (frame->fixed()) {
 		// this frame is already in use!
-		//TODO what to do?
+		//TODO wait for it to be freed
 		throw exception();
-	}
-
-	if (frame->pageId() != pageId) {
-		// flush this page NOW
-		flushNow(*frame);
-
-		// load the correct one
-		load(*frame, pageId);
 	}
 
 	frame->fixed_ = true;
@@ -64,6 +65,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
 	frame.dirty_ |= isDirty;
+	//TODO if it was exclusive, set that to false
 	frame.fixed_ = false;
 	queueFlush(frame);
 }
@@ -93,9 +95,24 @@ void BufferManager::queueFlush(BufferFrame& frame) {
 }
 
 void BufferManager::freePage() { // free page! what did he do wrong?
-	// get random element
+	// start at random element
 	auto it = slots.begin();
 	advance(it, rand() % slots.size());
+
+	size_t i = 0;
+	while (it->second->fixed()) {
+		++it;
+		++i;
+		if (i > slots.size()) {
+			break;
+		}
+		if (it == slots.end()) it = slots.begin();
+	}
+	if (it == slots.end() || it->second == nullptr || it->second->fixed()) {
+		throw exception(); //TODO more pretty exceptions
+		//TODO wait for a free frame
+	}
+
 	BufferFrame* frame = it->second;
 	slots.erase(it);
 

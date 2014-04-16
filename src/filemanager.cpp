@@ -14,11 +14,15 @@
 
 using namespace std;
 
-void FileManager::deconstruct(int param) {
+void FileManager::deconstruct(int param) { deconstruct(); }
+
+void FileManager::deconstruct() {
 	if (instance_ != nullptr) {
 		delete instance_;
 	}
 }
+
+FileManager* FileManager::instance_ = nullptr;
 
 FileManager* FileManager::instance() {
 	if (instance_== nullptr) {
@@ -40,29 +44,43 @@ FileManager::~FileManager() {
 		int ret = close(it->second);
 		if (ret == -1) {
 			cerr << "FATAL: could not close chunk " << it->first << ": "<<
-					strerr(errno) << endl;
+					strerror(errno) << endl;
 		} else {
 			openFiles.erase(it);
 		}
 	}
 }
 
-int FileManager::chunkId(uint64_t pageId) {
+uint16_t FileManager::chunkId(uint64_t pageId) {
 	return (pageId & 0xffff000000000000LL) << 6;
 }
 
 int FileManager::getFile(uint64_t pageId) {
 	//TODO close some files if too many are open
 
-	uint16_t chunkId = chunkId(pageId);
-	auto it = openFiles.find(chunkId);
+	uint16_t chunk = chunkId(pageId);
+	auto it = openFiles.find(chunk);
 	if (it != openFiles.end()) {
 		return it->second;
 	}
 
-	string path = basePath() + to_string(chunkId);
-	int fd = open(path.c_str(), O_RDWR | O_CREAT | O_DIRECT | O_SYNC);
+	string path = basePath() + to_string(chunk);
+
+	// check if the folder exists
+	struct stat dirStat;
+	int res = stat(basePath().c_str(), &dirStat);
+	if (errno == ENOENT) {
+		res = mkdir(basePath().c_str(), 0700);
+		util::checkReturn("creating chunk directory "+basePath(), res);
+	} else if (res == -1) {
+		util::checkReturn("checking chunk directory "+basePath(), res);
+	} else if (!S_ISDIR(dirStat.st_mode) && !S_ISDIR(dirStat.st_mode)) {
+		// wat
+		throw exception(); //TODO prettier exceptions
+	}
+
+	int fd = open(path.c_str(), O_RDWR | O_CREAT | O_DIRECT | O_SYNC, 0700);
 	if (fd == -1) util::checkReturn("opening chunk file "+path, errno);
-	openFiles.emplace(chunkId, fd);
+	openFiles.emplace(chunk, fd);
 	return fd;
 }
