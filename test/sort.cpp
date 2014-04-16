@@ -121,14 +121,14 @@ TEST_F(SortTest, SortNothing) {
 	sortTest(0, 32 * 8);
 }
 
-TEST_F(SortTest, Sort128) {
-	sortTest(1024 * 1024 * 128 / 8, // 500M data
+TEST_F(SortTest, Sort32) {
+	sortTest(MEG * 32 / 8, // 32M data
 		MEG * 1024 * 1); // 2GiB Memory
 }
 
 TEST_F(SortTest, DISABLED_SortHuge) {
-	sortTest(1024 * 1024 * 1024 * 5 / 8, // 5GiB data
-		1024 * 1024 * 1024); // 1GiB Memory
+	sortTest(MEG* 1024 * 5 / 8, // 5GiB data
+		MEG * 1024); // 1GiB Memory
 }
 
 } // namespace
