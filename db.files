@@ -13,3 +13,5 @@ sort.bin
 test/dummy.cpp
 test/main.cpp
 test/sort.cpp
+test/buffermanager.cpp
+test/buffertest.cpp
