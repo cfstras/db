@@ -36,7 +36,6 @@ BufferManager::~BufferManager() {
 
 
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
-	//TODO thread-safety
 	//TODO currently, all is exclusive
 	auto it = slots.find(pageId);
 	BufferFrame *frame;
@@ -52,12 +51,8 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 		frame = it->second;
 	}
 
-	// check if it is fixed
-	if (frame->fixed()) {
-		// this frame is already in use!
-		//TODO wait for it to be freed
-		throw exception();
-	}
+	// get the read & write lock
+	lock(frame->rdlatch_, frame->wrlatch_);
 
 	frame->fixed_ = true;
 	slots[pageId] = frame;
@@ -66,8 +61,13 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
 	frame.dirty_ |= isDirty;
-	//TODO if it was exclusive, set that to false
+
+	//TODO only if it was exclusive set to false
 	frame.fixed_ = false;
+
+	frame.wrlatch_.unlock();
+	frame.rdlatch_.unlock();
+
 	queueFlush(frame);
 }
 
@@ -89,6 +89,9 @@ void BufferManager::load(BufferFrame& frame, uint64_t pageId) {
 }
 
 void BufferManager::flushNow(BufferFrame& frame) {
+	// we only need the read lock to flush
+	frame.rdlatch_.lock();
+
 	auto pageId = frame.pageId();
 	int fd = FileManager::instance()->getFile(pageId);
 
@@ -101,9 +104,11 @@ void BufferManager::flushNow(BufferFrame& frame) {
 	} else if (bytes != PAGE_SIZE) {
 		// oh no!
 		//TODO prettier exceptions
-		throw exception();
+		util::checkReturn("no free page available", -1);
 	}
 	frame.dirty_ = false;
+
+	frame.rdlatch_.unlock();
 }
 
 void BufferManager::queueFlush(BufferFrame& frame) {
@@ -116,13 +121,11 @@ void BufferManager::freePage() { // free page! what did he do wrong?
 	auto it = slots.begin();
 	advance(it, rand() % slots.size());
 
+	// iterate through them, find an unfixed one
 	size_t i = 0;
 	while (it->second->fixed()) {
-		++it;
-		++i;
-		if (i > slots.size()) {
-			break;
-		}
+		++it; ++i;
+		if (i > slots.size()) break;
 		if (it == slots.end()) it = slots.begin();
 	}
 	if (it == slots.end() || it->second == nullptr || it->second->fixed()) {
@@ -130,9 +133,11 @@ void BufferManager::freePage() { // free page! what did he do wrong?
 		//TODO wait for a free frame
 	}
 
-	BufferFrame* frame = it->second;
+	// clear it from the map
+	BufferFrame *frame = it->second;
 	slots.erase(it);
 
+	lock(frame->rdlatch_, frame->wrlatch_);
 	flushNow(*frame);
 	delete frame;
 }

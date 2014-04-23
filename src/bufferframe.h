@@ -2,6 +2,7 @@
 
 #include "util.h"
 
+#include <mutex>
 #include <cstdint>
 
 class BufferManager;
@@ -37,6 +38,13 @@ private:
 	uint64_t pageId_;
 
 	/**
+	 * Read&Write latches. To read, acquire read lock.
+	 * To write, acquire both locks (at the same time!).1
+	 */
+	std::mutex rdlatch_;
+	std::mutex wrlatch_;
+
+	/**
 	 * Whether the page is fixed in memory.
 	 * If this is false, the page will probably be flushed to disk soon.
 	 */
@@ -48,5 +56,6 @@ private:
 	 */
 	bool dirty_;
 
+	// I feel dirty.
 	friend BufferManager;
 };
