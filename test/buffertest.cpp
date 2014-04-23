@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
+#include <chrono>
+#include <thread>
 #include <stdlib.h>
 #include <stdint.h>
 #include <pthread.h>
@@ -8,6 +10,8 @@
 #include "buffermanager.h"
 
 using namespace std;
+
+namespace {
 
 BufferManager* bm;
 unsigned pagesOnDisk;
@@ -127,6 +131,23 @@ void test(unsigned pagesDisk, unsigned pagesRam, unsigned nThreads) {
 	EXPECT_EQ(totalCount, totalCountOnDisk) << "error: expected " << totalCount << " but got " << totalCountOnDisk;
 }
 
-TEST(BufferManagerTest, Concurrent) {
-	test(16, 16, 1);
+bool doTimeout;
+
+void timeout() {
+	doTimeout = true;
+	this_thread::sleep_for(chrono::milliseconds(2000));
+	if (!doTimeout) {
+		FAIL() << "Timeout";
+	}
 }
+
+TEST(BufferManagerTest, Concurrent) {
+	thread timer(timeout);
+
+	test(16, 16, 1);
+
+	doTimeout = false;
+	timer.join();
+}
+
+} // namespace

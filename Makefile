@@ -94,7 +94,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 $(OBJDIR)_test/%.o: $(TESTDIR)/%.cpp
 	$(CXX) $(TEST_CXXFLAGS) -c $< -o $@
 
-$(GTEST_LIB): dir $(GTESTDIR)
+$(GTEST_LIB): $(GTESTDIR)
 	$(CXX) $(TEST_CXXFLAGS) -w -c -isystem $(GTESTDIR)/include -I$(GTESTDIR) -pthread -c \
 		$(GTESTDIR)/src/gtest-all.cc -o $(OBJDIR)_test/gtest-all.o
 	$(AR) -rv $(GTEST_LIB) $(OBJDIR)_test/gtest-all.o
