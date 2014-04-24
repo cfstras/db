@@ -16,7 +16,7 @@ bool doTimeout;
 void timeout() {
 	doTimeout = true;
 	this_thread::sleep_for(chrono::milliseconds(100));
-	if (!doTimeout) {
+	if (doTimeout) {
 		FAIL() << "Timeout";
 	}
 }
