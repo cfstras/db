@@ -46,10 +46,10 @@ FileManager::~FileManager() {
 		if (ret == -1) {
 			cerr << "FATAL: could not close chunk " << it->first << ": "<<
 					strerror(errno) << endl;
-		} else {
-			openFiles.erase(it);
+			//TODO wait until this chunk is closed, too
 		}
 	}
+	openFiles.clear();
 }
 
 uint16_t FileManager::chunkId(uint64_t pageId) {
