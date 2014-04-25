@@ -70,7 +70,7 @@ TEST(BufferManagerTest, CanFixUnfixTwice) {
 	EXPECT_EQ(1, f.pageId());
 
 	BufferFrame &f2 = b.fixPage(2, false);
-	EXPECT_EQ(2, f.pageId());
+	EXPECT_EQ(2, f2.pageId());
 
 	b.unfixPage(f, false);
 	b.unfixPage(f2, false);

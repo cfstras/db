@@ -36,7 +36,7 @@ static void scan1() {
 
 	while (!stop) {
 		unsigned start = random()%(pagesOnDisk-10);
-		for (unsigned page=start; page<start+10; page++) {
+		for (unsigned page=start; page<start+10 && !stop; page++) {
 			BufferFrame &bf = bm->fixPage(page, false);
 			unsigned newcount = reinterpret_cast<unsigned*>(bf.getData())[0];
 			ASSERT_LE(counters[page], newcount);
@@ -56,7 +56,7 @@ static void* readWrite(void *arg) {
 	uintptr_t threadNum = reinterpret_cast<uintptr_t>(arg);
 
 	uintptr_t count = 0;
-	for (unsigned i=0; i<100000/threadCount; i++) {
+	for (unsigned i=0; i<100000/threadCount && !stop; i++) {
 		bool isWrite = rand_r(&threadSeed[threadNum])%128<10;
 		BufferFrame &bf = bm->fixPage(randomPage(threadNum), isWrite);
 
@@ -137,6 +137,7 @@ void timeout() {
 	doTimeout = true;
 	this_thread::sleep_for(chrono::milliseconds(2000));
 	if (doTimeout) {
+		stop = true;
 		FAIL() << "Timeout";
 	}
 }
