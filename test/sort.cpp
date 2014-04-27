@@ -121,8 +121,8 @@ TEST_F(SortTest, SortNothing) {
 	sortTest(0, 32 * 8);
 }
 
-TEST_F(SortTest, Sort32) {
-	sortTest(MEG * 32 / 8, // 32M data
+TEST_F(SortTest, Sort16) {
+	sortTest(MEG * 16 / 8, // 16M data
 		MEG * 1024 * 1); // 2GiB Memory
 }
 
