@@ -18,6 +18,7 @@ unsigned pagesOnDisk;
 unsigned pagesInRAM;
 unsigned threadCount;
 unsigned* threadSeed;
+unsigned iterationCount;
 volatile bool stop=false;
 
 unsigned randomPage(unsigned threadNum) {
@@ -55,8 +56,9 @@ static void* readWrite(void *arg) {
 	// read or write random pages
 	uintptr_t threadNum = reinterpret_cast<uintptr_t>(arg);
 
+	int progress = 0;
 	uintptr_t count = 0;
-	for (unsigned i=0; i<100000/threadCount && !stop; i++) {
+	for (unsigned i=0; i<iterationCount/threadCount && !stop; i++) {
 		bool isWrite = rand_r(&threadSeed[threadNum])%128<10;
 		BufferFrame &bf = bm->fixPage(randomPage(threadNum), isWrite);
 
@@ -65,15 +67,25 @@ static void* readWrite(void *arg) {
 			reinterpret_cast<unsigned*>(bf.getData())[0]++;
 		}
 		bm->unfixPage(bf, isWrite);
+
+		if ((i*80 / (iterationCount/threadCount)) > progress) {
+			int pn = (i*80 / (iterationCount/threadCount));
+
+			string a(pn - progress,to_string(threadNum)[0]);
+			progress = pn;
+			cerr << a;
+		}
 	}
+	cerr << endl;
 
 	return reinterpret_cast<void*>(count);
 }
 
-void test(unsigned pagesDisk, unsigned pagesRam, unsigned nThreads) {
+void test(unsigned pagesDisk, unsigned pagesRam, unsigned nThreads, unsigned iterations) {
 	pagesOnDisk = pagesDisk;
 	pagesInRAM = pagesRam;
 	threadCount = nThreads;
+	iterationCount = iterations;
 
 	ASSERT_GE(pagesDisk, 10);
 	ASSERT_GE(pagesRam, 10);
@@ -83,6 +95,10 @@ void test(unsigned pagesDisk, unsigned pagesRam, unsigned nThreads) {
 		threadSeed[i] = i*97134;
 
 	bm = new BufferManager(pagesInRAM);
+
+	for (unsigned i=0; i<nThreads; i++) {
+		cerr << "[" << string(77, '-') << "]" << endl;
+	}
 
 	pthread_t threads[threadCount];
 	pthread_attr_t pattr;
@@ -135,20 +151,30 @@ bool doTimeout;
 
 void timeout() {
 	doTimeout = true;
-	this_thread::sleep_for(chrono::milliseconds(2000));
+	this_thread::sleep_for(chrono::milliseconds(4000));
 	if (doTimeout) {
 		stop = true;
 		FAIL() << "Timeout";
 	}
 }
 
-TEST(BufferManagerTest, Concurrent) {
+/*TEST(BufferManagerTest, Concurrent) {
 	thread timer(timeout);
 
-	test(16, 16, 1);
+	test(16, 16, 1, 10);
+
+	doTimeout = false;
+	timer.join();
+}*/
+
+TEST(BufferManagerTest, Concurrent2) {
+	thread timer(timeout);
+
+	test(16, 16, 2, 64);
 
 	doTimeout = false;
 	timer.join();
 }
+
 
 } // namespace
