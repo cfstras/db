@@ -1,22 +1,13 @@
-# Assignment 1: sort
+# Assignment 2: buffermanager
 
 (Hopefully complete) build requisites, example for Debian-ish systems:
 ```bash
 apt-get install libgtest-dev build-essential clang
 ```
 
-- Implementation is in `src/sort.cpp`
-- Unittests are in `test/sort.cpp`
-- SortTest.SortHuge does the 5GiB test. 
-
-## Sorting your own file
-
-```bash
-make opt
-bin/sort $BIG_RANDOM_FILE $OUTFILE 1024
-```
-
-This builds with `-O3`.
+- Implementation is in `src/buffer*.cpp`
+- Unittests are in `test/buffer*.cpp`
+- BufferManager::freePage cannot handle more than _size_ pages being in use (yet)
 
 ## Running the unittests
 
