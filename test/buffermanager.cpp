@@ -6,64 +6,54 @@
 #include <thread>
 
 #include "buffermanager.h"
+#include "testutil.h"
 
 using namespace std;
 
 namespace {
 
-bool doTimeout;
-
-void timeout() {
-	doTimeout = true;
-	this_thread::sleep_for(chrono::milliseconds(100));
-	if (doTimeout) {
-		FAIL() << "Timeout";
-	}
-}
-
 TEST(BufferManagerTest, InitAndDestruct) {
+	testutil::Timeout timer(100);
 	BufferManager b(1);
 	EXPECT_EQ(1, b.size());
+	timer.finished();
 }
 
 TEST(BufferManagerTest, CanFix) {
-	thread timer(timeout);
+	testutil::Timeout timer(100);
 
 	BufferManager b(1);
 	BufferFrame &f = b.fixPage(1, false);
 	EXPECT_EQ(1, f.pageId());
 	b.unfixPage(f, false);
 
-	doTimeout = false;
-	timer.join();
+	timer.finished();
 }
 
 TEST(BufferManagerTest, CanFixExclusive) {
-	thread timer(timeout);
+	testutil::Timeout timer(100);
 
 	BufferManager b(1);
 	BufferFrame &f2 = b.fixPage(2, true);
 	EXPECT_EQ(2, f2.pageId());
 	b.unfixPage(f2, false);
 
-	doTimeout = false;
-	timer.join();
+	timer.finished();
 }
 
 TEST(BufferManagerTest, CanFixUnfixDirty) {
-	thread timer(timeout);
+	testutil::Timeout timer(100);
 
 	BufferManager b(1);
 	BufferFrame &f2 = b.fixPage(2, true);
 	EXPECT_EQ(2, f2.pageId());
 	b.unfixPage(f2, true);
 
-	doTimeout = false;
-	timer.join();
+	timer.finished();
 }
 
 TEST(BufferManagerTest, CanFixUnfixTwice) {
-	thread timer(timeout);
+	testutil::Timeout timer(100);
 
 	BufferManager b(2);
 	BufferFrame &f = b.fixPage(1, false);
@@ -75,8 +65,7 @@ TEST(BufferManagerTest, CanFixUnfixTwice) {
 	b.unfixPage(f, false);
 	b.unfixPage(f2, false);
 
-	doTimeout = false;
-	timer.join();
+	timer.finished();
 }
 
 typedef struct {
@@ -89,7 +78,7 @@ TEST(BufferManagerTest, Basic) {
 	srand(time(0));
 	int a = rand(), b = rand(), c = rand();
 
-	thread timer(timeout);
+	testutil::Timeout timer(100);
 
 	BufferManager bm(16);
 	{
@@ -110,8 +99,7 @@ TEST(BufferManagerTest, Basic) {
 		bm.unfixPage(f, false);
 	}
 
-	doTimeout = false;
-	timer.join();
+	timer.finished();
 }
 
 } // namespace

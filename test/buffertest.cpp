@@ -8,6 +8,7 @@
 #include <pthread.h>
 
 #include "buffermanager.h"
+#include "testutil.h"
 
 using namespace std;
 
@@ -37,7 +38,7 @@ static void scan1() {
 
 	while (!stop) {
 		unsigned start = random()%(pagesOnDisk-10);
-		for (unsigned page=start; page<start+10 && !stop; page++) {
+		for (unsigned page=start; page<start+10; page++) {
 			BufferFrame &bf = bm->fixPage(page, false);
 			unsigned newcount = reinterpret_cast<unsigned*>(bf.getData())[0];
 			ASSERT_LE(counters[page], newcount);
@@ -56,7 +57,7 @@ static void* readWrite(void *arg) {
 	// read or write random pages
 	uintptr_t threadNum = reinterpret_cast<uintptr_t>(arg);
 
-	int progress = 0;
+	int progress = 0, pn;
 	uintptr_t count = 0;
 	for (unsigned i=0; i<iterationCount/threadCount && !stop; i++) {
 		bool isWrite = rand_r(&threadSeed[threadNum])%128<10;
@@ -68,9 +69,8 @@ static void* readWrite(void *arg) {
 		}
 		bm->unfixPage(bf, isWrite);
 
-		if ((i*80 / (iterationCount/threadCount)) > progress) {
-			int pn = (i*80 / (iterationCount/threadCount));
-
+		pn = (i*77 / (iterationCount/threadCount));
+		if (pn > progress) {
 			string a(pn - progress,to_string(threadNum)[0]);
 			progress = pn;
 			cerr << a;
@@ -147,17 +147,6 @@ void test(unsigned pagesDisk, unsigned pagesRam, unsigned nThreads, unsigned ite
 	EXPECT_EQ(totalCount, totalCountOnDisk) << "error: expected " << totalCount << " but got " << totalCountOnDisk;
 }
 
-bool doTimeout;
-
-void timeout() {
-	doTimeout = true;
-	this_thread::sleep_for(chrono::milliseconds(4000));
-	if (doTimeout) {
-		stop = true;
-		FAIL() << "Timeout";
-	}
-}
-
 /*TEST(BufferManagerTest, Concurrent) {
 	thread timer(timeout);
 
@@ -168,12 +157,9 @@ void timeout() {
 }*/
 
 TEST(BufferManagerTest, Concurrent2) {
-	thread timer(timeout);
-
-	test(16, 16, 2, 64);
-
-	doTimeout = false;
-	timer.join();
+	testutil::Timeout timer(10*1000);
+	test(32, 32, 4, 32);
+	timer.finished();
 }
 
 
