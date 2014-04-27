@@ -7,6 +7,7 @@ using namespace std;
 BufferFrame::BufferFrame() :
 	pageId_(0),
 	fixed_(false),
+	exclusive_(false),
 	dirty_(false)
 {
 	data_ = malloc(PAGE_SIZE);

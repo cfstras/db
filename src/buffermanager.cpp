@@ -1,5 +1,7 @@
 #include "buffermanager.h"
 
+#include <iostream>
+#include <stdexcept>
 #include <map>
 #include <cstdlib>
 #include <ctime>
@@ -24,7 +26,8 @@ BufferManager::~BufferManager() {
 		BufferFrame* f = entry.second;
 		if (f != nullptr) {
 			if (f->fixed()) {
-				throw exception(); //TODO oh no!
+				cerr << "Error: Buffermanager is being deleted while frames are still fixed" << endl;
+				throw runtime_error("Do not delete buffermanager before unfixing frames");
 			}
 			if (f->dirty()) {
 				flushNow(*f);
@@ -51,9 +54,15 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 		frame = it->second;
 	}
 
-	// get the read & write lock
-	lock(frame->rdlatch_, frame->wrlatch_);
+	// get the locks
+	if (exclusive) {
+		lock(frame->rdlatch_, frame->wrlatch_);
+	} else {
+		frame->rdlatch_.lock();
+		//TODO note to self: i am stupid. use a normal multi-read/single-write latch here!
+	}
 
+	frame->exclusive_ = exclusive;
 	frame->fixed_ = true;
 	slots[pageId] = frame;
 	return *frame;
@@ -61,11 +70,13 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
 	frame.dirty_ |= isDirty;
-
-	//TODO only if it was exclusive set to false
 	frame.fixed_ = false;
 
-	frame.wrlatch_.unlock();
+	if (frame.exclusive_) {
+		// only reset fixed if the write latch is set
+		frame.wrlatch_.unlock();
+	}
+
 	frame.rdlatch_.unlock();
 
 	queueFlush(frame);
@@ -103,8 +114,8 @@ void BufferManager::flushNow(BufferFrame& frame) {
 		util::checkReturn("saving page "+to_string(pageId), errno);
 	} else if (bytes != PAGE_SIZE) {
 		// oh no!
+		util::checkReturn("flushing page did not write all data", -1);
 		//TODO prettier exceptions
-		util::checkReturn("no free page available", -1);
 	}
 	frame.dirty_ = false;
 
@@ -129,7 +140,7 @@ void BufferManager::freePage() { // free page! what did he do wrong?
 		if (it == slots.end()) it = slots.begin();
 	}
 	if (it == slots.end() || it->second == nullptr || it->second->fixed()) {
-		throw exception(); //TODO more pretty exceptions
+		util::checkReturn("no free page available", -1); //TODO more pretty exceptions
 		//TODO wait for a free frame
 	}
 
