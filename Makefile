@@ -13,9 +13,12 @@ GTEST_LIB		= $(OBJDIR)_test/libgtest.a
 CXX 			= clang++
 DEBUG			= -O0 -DDEBUG
 OPTIMIZED		= -O3
-CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -pthread -Wall -Werror -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
+CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -Wall -Werror -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
+OBJFLAGS		= $(CXXFLAGS) -pthread
 LDFLAGS			=
-TEST_CXXFLAGS	= $(CXXFLAGS) -isystem $(GTESTDIR)/include -pthread
+TEST_CXXFLAGS	= $(CXXFLAGS) -isystem $(GTESTDIR)/include
+TEST_OBJFLAGS	= $(TEST_CXXFLAGS) -pthread
+
 TEST_LDFLAGS	= $(LDFLAGS) $(GTEST_LIB)
 
 
@@ -61,9 +64,9 @@ clean:
 	\rm -f externalsort-*
 
 dir:
-	@mkdir -p $(BINDIR)
-	@cd $(SRCDIR) && find -type d -exec mkdir -p ../$(OBJDIR)/{} \;
-	@cd $(TESTDIR) && find -type d -exec mkdir -p ../$(OBJDIR)_test/{} \;
+	@mkdir -p $(BINDIR) $(OBJDIR) $(OBJDIR)_test
+	@cd $(SRCDIR) && find * -type d -exec mkdir -p ../$(OBJDIR)/{} \;
+	@cd $(TESTDIR) && find * -type d -exec mkdir -p ../$(OBJDIR)_test/{} \;
 
 .PHONY: datagen
 datagen:
@@ -89,15 +92,15 @@ $(BINDIR)/$(TEST_BINARY): $(OBJS_TEST) $(GTEST_LIB)
 	$(CXX) $(TEST_CXXFLAGS) $(TEST_LDFLAGS) $(OBJS_TEST) $(GTEST_LIB) -o $(BINDIR)/$(TEST_BINARY)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	$(CXX) $(CXXFLAGS) -c $< -MMD -o $@
+	$(CXX) $(OBJFLAGS) -c $< -MMD -o $@
 
 $(OBJDIR)_test/%.o: $(TESTDIR)/%.cpp
-	$(CXX) $(TEST_CXXFLAGS) -c -MMD $< -o $@
+	$(CXX) $(TEST_OBJFLAGS) -c -MMD $< -o $@
 
 -include $(OBJDIR)/*.d
 -include $(OBJDIR)_test/*.d
 
 $(GTEST_LIB): $(GTESTDIR)
-	$(CXX) $(TEST_CXXFLAGS) -w -c -isystem $(GTESTDIR)/include -I$(GTESTDIR) -pthread -c \
+	$(CXX) $(TEST_CXXFLAGS) -w -c -isystem $(GTESTDIR)/include -I$(GTESTDIR) -c \
 		$(GTESTDIR)/src/gtest-all.cc -o $(OBJDIR)_test/gtest-all.o
 	$(AR) -rv $(GTEST_LIB) $(OBJDIR)_test/gtest-all.o

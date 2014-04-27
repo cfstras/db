@@ -19,3 +19,8 @@ void checkReturn(string what, int err) {
 }
 
 } // namespace
+
+// "System-agnostic"
+#ifdef __APPLE__
+int posix_fallocate(int fd, off_t offset, off_t len) {return 0;}
+#endif

@@ -76,7 +76,7 @@ Sorter::Sorter(int _fdInput, uint64_t _size, int _fdOutput, uint64_t _memSize) :
 		chunkPositions(),
 		memSize(_memSize),
 		size(_size),
-		chunkLength(max(4UL, memSize / sizeof(T))), // be sane
+		chunkLength(max(4ULL, memSize / sizeof(T))), // be sane
 		bufferSize(0),
 		buffer(chunkLength),
 		numChunks(0),
@@ -285,7 +285,7 @@ size_t Sorter::fillBuffer(size_t chunkInd) {
 	size_t chunkLen;
 	chunkLen = chunkLength*(chunkInd+1) - chunkPositions[chunkInd];
 	chunkLen = min(chunkLen, bufferSize / sizeof(T));
-	chunkLen = min(chunkLen, size - chunkPositions[chunkInd]);
+	chunkLen = min(chunkLen, static_cast<size_t>(size - chunkPositions[chunkInd]));
 	if (chunkLen == 0) {
 		return 0;
 	}

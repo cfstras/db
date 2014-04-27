@@ -27,3 +27,9 @@ void checkReturn(std::string what, int err);
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
   TypeName(const TypeName&);               \
   void operator=(const TypeName&)
+
+
+// "System-agnostic"
+#ifdef __APPLE__
+int posix_fallocate(int fd, off_t offset, off_t len);
+#endif

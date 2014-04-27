@@ -9,6 +9,10 @@
 #include <unistd.h>
 #include <vector>
 
+#ifdef __APPLE__
+#  define posix_fallocate(x,y,z) (0)
+#endif
+
 using namespace std;
 
 class RandomLong

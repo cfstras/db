@@ -65,8 +65,8 @@ protected:
 
 		int fdInput = open(unsortedFile.c_str(), O_RDONLY);
 		int fdOutput = open(sortedFile.c_str(), O_RDWR | O_TRUNC);
-		ASSERT_NE(-1, fdInput) << "Opening file " << unsortedFile << " failed: " << strerror(errno);
-		ASSERT_NE(-1, fdOutput) << "Opening file " << sortedFile << " failed: " << strerror(errno);
+		ASSERT_LT(0, fdInput) << "Opening file " << unsortedFile << " failed: " << strerror(errno);
+		ASSERT_LT(0, fdOutput) << "Opening file " << sortedFile << " failed: " << strerror(errno);
 		externalSort(fdInput, size, fdOutput, memSize);
 		close(fdInput);
 
@@ -96,8 +96,8 @@ TEST_F(SortTest, DoesNotCloseFDs) {
 
 	int fdInput = open(unsortedFile.c_str(), O_RDONLY);
 	int fdOutput = open(sortedFile.c_str(), O_RDWR | O_TRUNC);
-	ASSERT_NE(-1, fdInput) << "Opening file " << unsortedFile << " failed: " << strerror(errno);
-	ASSERT_NE(-1, fdOutput) << "Opening file " << sortedFile << " failed: " << strerror(errno);
+	ASSERT_LT(0, fdInput) << "Opening file " << unsortedFile << " failed: " << strerror(errno);
+	ASSERT_LT(0, fdOutput) << "Opening file " << sortedFile << " failed: " << strerror(errno);
 	externalSort(fdInput, 64, fdOutput, 128 * 8);
 	EXPECT_NE(-1, close(fdInput)) <<
 		"output file descriptor was closed by sort: " << strerror(errno);
