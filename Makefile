@@ -15,7 +15,7 @@ DEBUG			= -O0 -DDEBUG
 OPTIMIZED		= -O3
 CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -Wall -Werror -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
 OBJFLAGS		= $(CXXFLAGS) -pthread
-LDFLAGS			=
+LDFLAGS			= -pthread
 TEST_CXXFLAGS	= $(CXXFLAGS) -isystem $(GTESTDIR)/include
 TEST_OBJFLAGS	= $(TEST_CXXFLAGS) -pthread
 
