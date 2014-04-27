@@ -82,17 +82,20 @@ build: dir $(OBJS) $(BINDIR)/$(BINARY)
 $(BINDIR)/$(BINARY): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $(BINDIR)/$(BINARY)
 
-build-test: CXXFLAGS+= -DSILENT -O2
+build-test: CXXFLAGS+= -DSILENT
 build-test: dir datagen $(GTEST_LIB) $(OBJS) $(OBJS_TEST) $(BINDIR)/$(TEST_BINARY)
 
 $(BINDIR)/$(TEST_BINARY): $(OBJS_TEST) $(GTEST_LIB)
 	$(CXX) $(TEST_CXXFLAGS) $(TEST_LDFLAGS) $(OBJS_TEST) $(GTEST_LIB) -o $(BINDIR)/$(TEST_BINARY)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -MMD -o $@
 
 $(OBJDIR)_test/%.o: $(TESTDIR)/%.cpp
-	$(CXX) $(TEST_CXXFLAGS) -c $< -o $@
+	$(CXX) $(TEST_CXXFLAGS) -c -MMD $< -o $@
+
+-include $(OBJDIR)/*.d
+-include $(OBJDIR)_test/*.d
 
 $(GTEST_LIB): $(GTESTDIR)
 	$(CXX) $(TEST_CXXFLAGS) -w -c -isystem $(GTESTDIR)/include -I$(GTESTDIR) -pthread -c \
