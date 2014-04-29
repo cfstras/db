@@ -4,6 +4,7 @@
 
 #include <mutex>
 #include <cstdint>
+#include <pthread.h>
 
 class BufferManager;
 
@@ -41,19 +42,13 @@ private:
 	 * Read&Write latches. To read, acquire read lock.
 	 * To write, acquire both locks (at the same time!).
 	 */
-	std::mutex rdlatch_;
-	std::mutex wrlatch_;
+	pthread_rwlock_t latch_;
 
 	/**
 	 * Whether the page is fixed in memory.
 	 * If this is false, the page will probably be flushed to disk soon.
 	 */
 	bool fixed_;
-
-	/**
-	 * Whether the page is fixed exclusively.
-	 */
-	bool exclusive_;
 
 	/**
 	 * Whether this frame has dirty data in it.

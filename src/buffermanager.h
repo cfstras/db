@@ -57,7 +57,7 @@ private:
 
 	/**
 	 * Map from pageId to BufferFrame pointers.
-	 * Gets rebuilt when too big.
 	 */
 	std::unordered_map<uint64_t, BufferFrame*> slots;
+	std::mutex slots_mutex;
 };

@@ -22,12 +22,14 @@ BufferManager::BufferManager(unsigned size) :
 }
 
 BufferManager::~BufferManager() {
+	slots_mutex.lock();
 	for(const auto &entry : slots) {
 		BufferFrame* f = entry.second;
 		if (f != nullptr) {
 			if (f->fixed()) {
-				cerr << "Error: Buffermanager is being deleted while frames are still fixed" << endl;
-				throw runtime_error("Do not delete buffermanager before unfixing frames");
+				cerr << "Error: Buffermanager is being deleted while frame " <<
+					f->pageId_ << " is still fixed" << endl;
+				throw Exception("Do not delete buffermanager before unfixing frames");
 			}
 			if (f->dirty()) {
 				flushNow(*f);
@@ -35,51 +37,72 @@ BufferManager::~BufferManager() {
 			delete f;
 		}
 	}
+	slots_mutex.unlock();
 }
 
 
 BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
-	//TODO currently, all is exclusive
-	auto it = slots.find(pageId);
 	BufferFrame *frame;
+
+	slots_mutex.lock();
+	auto it = slots.find(pageId);
 
 	if (it == slots.end()) {
 		// make a new one
-		if (slots.size() >= size_) {
+
+		int size = slots.size();
+		slots_mutex.unlock(); // release asap
+
+		if (size >= size_) {
 			freePage();
 		}
 		frame = new BufferFrame();
 		load(*frame, pageId);
 	} else {
+		slots_mutex.unlock(); // release asap
 		frame = it->second;
 	}
 
 	// get the locks
 	if (exclusive) {
-		lock(frame->rdlatch_, frame->wrlatch_);
+		util::checkReturn("locking frame exclusive",
+			pthread_rwlock_wrlock(&frame->latch_));
 	} else {
-		frame->rdlatch_.lock();
-		//TODO note to self: i am stupid. use a normal multi-read/single-write latch here!
+		util::checkReturn("locking frame",
+			pthread_rwlock_rdlock(&frame->latch_));
 	}
 
-	frame->exclusive_ = exclusive;
+	cout << "frame " + to_string(frame->pageId_) + " fixed" << endl;
 	frame->fixed_ = true;
+
+	slots_mutex.lock();
 	slots[pageId] = frame;
+	slots_mutex.unlock();
+
 	return *frame;
 }
 
 void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
 	frame.dirty_ |= isDirty;
-	frame.fixed_ = false;
+	// release our lock
 
-	if (frame.exclusive_) {
-		// only reset fixed if the write latch is set
-		frame.wrlatch_.unlock();
+	util::checkReturn("unlocking frame",
+		pthread_rwlock_unlock(&frame.latch_));
+
+	int busy = pthread_rwlock_trywrlock(&frame.latch_);
+	if (busy == 0) { // got write lock --> no more readers
+		frame.fixed_ = false;
+		util::checkReturn("unlocking frame",
+			pthread_rwlock_unlock(&frame.latch_));
+		cout << "frame " + to_string(frame.pageId_) + " unfixed" << endl;
+	} else if (busy == EBUSY) {
+		cout << "frame " + to_string(frame.pageId_) + " is busy, not unfixing" << endl;
+		// we still have an active reader
+	} else {
+		util::checkReturn("unlocking frame", busy);
 	}
 
-	frame.rdlatch_.unlock();
-
-	queueFlush(frame);
+	if (frame.dirty_) queueFlush(frame);
 }
 
 uint64_t BufferManager::offset(uint64_t pageId) {
@@ -87,6 +110,9 @@ uint64_t BufferManager::offset(uint64_t pageId) {
 }
 
 void BufferManager::load(BufferFrame& frame, uint64_t pageId) {
+	util::checkReturn("locking frame for load",
+		pthread_rwlock_wrlock(&frame.latch_));
+
 	frame.pageId_ = pageId;
 	// first two bytes are the chunk id
 	int fd = FileManager::instance()->getFile(pageId);
@@ -97,11 +123,14 @@ void BufferManager::load(BufferFrame& frame, uint64_t pageId) {
 		// this should only happen when the file is shorter than requested.
 		// as the file will get the correct size once we flush, just do nothing here.
 	}
+	util::checkReturn("unlocking frame after load",
+		pthread_rwlock_unlock(&frame.latch_));
 }
 
 void BufferManager::flushNow(BufferFrame& frame) {
-	// we only need the read lock to flush
-	frame.rdlatch_.lock();
+	// we only need a read lock for flushing
+	util::checkReturn("locking frame for flush",
+		pthread_rwlock_rdlock(&frame.latch_));
 
 	auto pageId = frame.pageId();
 	int fd = FileManager::instance()->getFile(pageId);
@@ -119,7 +148,8 @@ void BufferManager::flushNow(BufferFrame& frame) {
 	}
 	frame.dirty_ = false;
 
-	frame.rdlatch_.unlock();
+	util::checkReturn("unlocking frame",
+		pthread_rwlock_unlock(&frame.latch_));
 }
 
 void BufferManager::queueFlush(BufferFrame& frame) {
@@ -129,6 +159,7 @@ void BufferManager::queueFlush(BufferFrame& frame) {
 
 void BufferManager::freePage() { // free page! what did he do wrong?
 	// start at random element
+	slots_mutex.lock();
 	auto it = slots.begin();
 	advance(it, rand() % slots.size());
 
@@ -146,9 +177,15 @@ void BufferManager::freePage() { // free page! what did he do wrong?
 
 	// clear it from the map
 	BufferFrame *frame = it->second;
-	slots.erase(it);
 
-	lock(frame->rdlatch_, frame->wrlatch_);
+	util::checkReturn("locking frame for free",
+		pthread_rwlock_rdlock(&frame->latch_));
+	slots.erase(it);
+	util::checkReturn("unlocking frame for free",
+		pthread_rwlock_unlock(&frame->latch_));
+
+	slots_mutex.unlock();
+
 	flushNow(*frame);
 	delete frame;
 }
