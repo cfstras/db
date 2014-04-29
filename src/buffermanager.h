@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include <mutex>
+#include <condition_variable>
 #include <cstdint>
 
 #include "util.h"
@@ -46,12 +47,19 @@ private:
 
 	void load(BufferFrame& frame, uint64_t pageId);
 
-	uint64_t offset(uint64_t pageId);
+	static uint64_t offset(uint64_t pageId);
 
 	/**
-	 * Frees a loaded, unfixed page
+	 * Frees a loaded, unfixed page.
+	 * If none is available, waits until there is one.
+	 * Afterwards, slots.size() is guaranteed to be 1 smaller.
 	 */
 	void freePage();
+
+	/**
+	 * Tries to free a page, returns the success.
+	 */
+	bool tryFreeingPage(std::unique_lock<std::mutex> &lock);
 
 	unsigned size_;
 
@@ -60,4 +68,10 @@ private:
 	 */
 	std::unordered_map<uint64_t, BufferFrame*> slots;
 	std::mutex slots_mutex;
+
+	/**
+	 * Used to wait for free pages.
+	 * Notified whenever a page gets thrown out.
+	 */
+	std::condition_variable slot_condition_;
 };

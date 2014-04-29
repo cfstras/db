@@ -14,6 +14,7 @@ void checkReturn(string what, int err) {
 	if (err != 0) {
 		err = err == -1 ? errno : err;
 		auto str = "Error while " + what + ": " + strerror(err);
+		cerr << str;
 		throw Exception(str);
 	}
 }
