@@ -25,7 +25,7 @@ TEST_LDFLAGS	= $(LDFLAGS) $(GTEST_LIB)
 all: build-test
 
 debug: build-debug
-	gdb --args $(BINDIR)/$(BINARY)
+#	gdb --args $(BINDIR)/$(BINARY)
 
 build-debug: CXXFLAGS += $(DEBUG)
 build-debug:
@@ -33,13 +33,13 @@ build-debug:
 	[ -f $(OBJDIR)/DEBUG ] || make clean; true
 	@make dir
 	touch $(OBJDIR)/DEBUG
-	@make build
+	@make build-test
 
 .PHONY: test
 test:
 	[ -f $(OBJDIR)/OPTIMIZED ] && make clean; true
 	[ -f $(OBJDIR)/DEBUG ] && make clean; true
-	@make build-test
+	@make build-test-flag
 	$(BINDIR)/$(TEST_BINARY)
 
 .PHONY: opt
@@ -85,8 +85,10 @@ build: dir $(OBJS) $(BINDIR)/$(BINARY)
 $(BINDIR)/$(BINARY): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $(BINDIR)/$(BINARY)
 
-build-test: CXXFLAGS+= -DSILENT -O2
-build-test: dir datagen $(GTEST_LIB) $(OBJS) $(OBJS_TEST) $(BINDIR)/$(TEST_BINARY)
+build-test-flag: CXXFLAGS+= -DSILENT -O2
+build-test-flag: build-test
+
+build-test: dir datagen $(GTEST_LIB) $(OBJS) $(OBJS_TEST) $(BINDIR)/$(TEST_BINARY) $(BINDIR)/$(BINARY)
 
 $(BINDIR)/$(TEST_BINARY): $(OBJS_TEST) $(GTEST_LIB)
 	$(CXX) $(TEST_CXXFLAGS) $(TEST_LDFLAGS) $(OBJS_TEST) $(GTEST_LIB) -o $(BINDIR)/$(TEST_BINARY)

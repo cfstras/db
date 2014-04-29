@@ -51,7 +51,7 @@ If your distro does not have googletest as a package, unzip the source of [googl
 
     make opt
 
-### Building a debug version and starting it with gdb
+### Building a debug version + Debugging test binary
 
     make debug
 
