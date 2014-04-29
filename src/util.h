@@ -33,3 +33,19 @@ void checkReturn(std::string what, int err);
 #ifdef __APPLE__
 int posix_fallocate(int fd, off_t offset, off_t len);
 #endif
+
+
+class Exception: public std::exception
+{
+public:
+	explicit Exception(const char* message);
+
+	explicit Exception(const std::string& message);
+
+	virtual ~Exception() throw ();
+
+	virtual const char* what() const throw ();
+
+protected:
+	std::string msg_;
+};

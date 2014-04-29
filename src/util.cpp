@@ -14,7 +14,7 @@ void checkReturn(string what, int err) {
 	if (err != 0) {
 		err = err == -1 ? errno : err;
 		auto str = "Error while " + what + ": " + strerror(err);
-		throw runtime_error(str);
+		throw Exception(str);
 	}
 }
 
@@ -24,3 +24,18 @@ void checkReturn(string what, int err) {
 #ifdef __APPLE__
 int posix_fallocate(int fd, off_t offset, off_t len) {return 0;}
 #endif
+
+
+Exception::Exception(const char* message):
+		msg_(message)
+{}
+Exception::Exception(const std::string& message):
+	msg_(message)
+{}
+
+Exception::~Exception() throw ()
+{}
+
+const char* Exception::what() const throw (){
+	return msg_.c_str();
+}
