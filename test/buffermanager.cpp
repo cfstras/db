@@ -75,6 +75,27 @@ TEST(BufferManagerTest, CanFixUnfixTwice) {
 	timer.finished();
 }
 
+TEST(BufferManagerTest, CanWaitForFreeFrame) {
+	testutil::Timeout timer(400);
+
+	BufferManager b(1);
+	auto &f = b.fixPage(1, false);
+	EXPECT_EQ(1, f.pageId());
+
+	thread giveBack([] (BufferManager *b, BufferFrame *f){
+		this_thread::sleep_for(chrono::milliseconds(100));
+		b->unfixPage(*f, false);
+	}, &b, &f);
+
+	auto &f2 = b.fixPage(2, false);
+	EXPECT_EQ(2, f.pageId());
+	b.unfixPage(f2, false);
+
+	giveBack.join();
+
+	timer.finished();
+}
+
 typedef struct {
 	int a;
 	int b;
@@ -83,20 +104,21 @@ typedef struct {
 
 TEST(BufferManagerTest, Basic) {
 	srand(time(0));
+	int page = rand() % 100;
 	int a = rand(), b = rand(), c = rand();
 
 	testutil::Timeout timer(400);
 
 	BufferManager bm(16);
 	{
-		BufferFrame &f = bm.fixPage(1, true);
+		BufferFrame &f = bm.fixPage(page, true);
 
 		Data *data = reinterpret_cast<Data*>(f.getData());
 		data->a = a; data->b = b; data->c = c;
 
 		bm.unfixPage(f, true);
 	} {
-		BufferFrame &f = bm.fixPage(1, false);
+		BufferFrame &f = bm.fixPage(page, false);
 
 		Data *data = reinterpret_cast<Data*>(f.getData());
 		EXPECT_EQ(a, data->a);
