@@ -6,7 +6,6 @@ using namespace std;
 
 BufferFrame::BufferFrame() :
 	pageId_(0),
-	fixed_(false),
 	dirty_(false)
 {
 	util::checkReturn("creating frame latch",
@@ -15,7 +14,6 @@ BufferFrame::BufferFrame() :
 }
 
 BufferFrame::~BufferFrame() {
-
 	int err = 0;
 	while ((err = pthread_rwlock_destroy(&latch_)) == EBUSY) {
 		// get a write lock

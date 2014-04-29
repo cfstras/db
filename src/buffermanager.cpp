@@ -26,11 +26,6 @@ BufferManager::~BufferManager() {
 	for(const auto &entry : slots) {
 		BufferFrame* f = entry.second;
 		if (f != nullptr) {
-			if (f->fixed()) {
-				cerr << "Error: Buffermanager is being deleted while frame " <<
-					f->pageId_ << " is still fixed" << endl;
-				throw Exception("Do not delete buffermanager before unfixing frames");
-			}
 			if (f->dirty()) {
 				flushNow(*f);
 			}
@@ -72,9 +67,6 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 			pthread_rwlock_rdlock(&frame->latch_));
 	}
 
-	cout << "frame " + to_string(frame->pageId_) + " fixed" << endl;
-	frame->fixed_ = true;
-
 	slots_mutex.lock();
 	slots[pageId] = frame;
 	slots_mutex.unlock();
@@ -88,21 +80,6 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
 
 	util::checkReturn("unlocking frame",
 		pthread_rwlock_unlock(&frame.latch_));
-
-	int busy = pthread_rwlock_trywrlock(&frame.latch_);
-	if (busy == 0) { // got write lock --> no more readers
-		frame.fixed_ = false;
-		util::checkReturn("unlocking frame",
-			pthread_rwlock_unlock(&frame.latch_));
-		cout << "frame " + to_string(frame.pageId_) + " unfixed" << endl;
-	} else if (busy == EBUSY) {
-		cout << "frame " + to_string(frame.pageId_) + " is busy, not unfixing" << endl;
-		// we still have an active reader
-	} else {
-		util::checkReturn("unlocking frame", busy);
-	}
-
-	if (frame.dirty_) queueFlush(frame);
 }
 
 uint64_t BufferManager::offset(uint64_t pageId) {
@@ -165,12 +142,14 @@ void BufferManager::freePage() { // free page! what did he do wrong?
 
 	// iterate through them, find an unfixed one
 	size_t i = 0;
-	while (it->second->fixed()) {
+	int err;
+	while ((err = pthread_rwlock_trywrlock(&it->second->latch_)) == EBUSY) {
+		if (err != 0) util::checkReturn("getting frame lock", err);
 		++it; ++i;
 		if (i > slots.size()) break;
 		if (it == slots.end()) it = slots.begin();
 	}
-	if (it == slots.end() || it->second == nullptr || it->second->fixed()) {
+	if (it == slots.end()) {
 		util::checkReturn("no free page available", -1); //TODO more pretty exceptions
 		//TODO wait for a free frame
 	}
@@ -178,8 +157,6 @@ void BufferManager::freePage() { // free page! what did he do wrong?
 	// clear it from the map
 	BufferFrame *frame = it->second;
 
-	util::checkReturn("locking frame for free",
-		pthread_rwlock_rdlock(&frame->latch_));
 	slots.erase(it);
 	util::checkReturn("unlocking frame for free",
 		pthread_rwlock_unlock(&frame->latch_));

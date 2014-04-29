@@ -20,7 +20,6 @@ public:
 	 */
 	uint64_t pageId() {return pageId_;}
 
-	bool fixed() {return fixed_;}
 	bool dirty() {return dirty_;}
 
 private:
@@ -43,12 +42,6 @@ private:
 	 * To write, acquire both locks (at the same time!).
 	 */
 	pthread_rwlock_t latch_;
-
-	/**
-	 * Whether the page is fixed in memory.
-	 * If this is false, the page will probably be flushed to disk soon.
-	 */
-	bool fixed_;
 
 	/**
 	 * Whether this frame has dirty data in it.
