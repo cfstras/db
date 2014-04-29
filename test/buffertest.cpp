@@ -14,6 +14,12 @@ using namespace std;
 
 namespace {
 
+#ifdef DEBUG
+#	define PER_N_PROGRESS 128
+#else
+#	define PER_N_PROGRESS 77
+#endif
+
 BufferManager* bm;
 unsigned pagesOnDisk;
 unsigned pagesInRAM;
@@ -57,7 +63,10 @@ static void* readWrite(void *arg) {
 	// read or write random pages
 	uintptr_t threadNum = reinterpret_cast<uintptr_t>(arg);
 
+#ifndef SILENT
 	int progress = 0, pn;
+#endif
+
 	uintptr_t count = 0;
 	for (unsigned i=0; i<iterationCount/threadCount && !stop; i++) {
 		bool isWrite = rand_r(&threadSeed[threadNum])%128<10;
@@ -69,14 +78,18 @@ static void* readWrite(void *arg) {
 		}
 		bm->unfixPage(bf, isWrite);
 
-		pn = (i*77 / (iterationCount/threadCount));
+#ifndef SILENT
+		pn = (i*PER_N_PROGRESS / (iterationCount/threadCount));
 		if (pn > progress) {
 			string a(pn - progress,to_string(threadNum)[0]);
 			progress = pn;
 			cerr << a;
 		}
+#endif
 	}
+#ifndef SILENT
 	cerr << endl;
+#endif
 
 	return reinterpret_cast<void*>(count);
 }
@@ -96,9 +109,11 @@ void test(unsigned pagesDisk, unsigned pagesRam, unsigned nThreads, unsigned ite
 
 	bm = new BufferManager(pagesInRAM);
 
+#ifndef SILENT
 	for (unsigned i=0; i<nThreads; i++) {
 		cerr << "[" << string(77, '-') << "]" << endl;
 	}
+#endif
 
 	pthread_t threads[threadCount];
 	pthread_attr_t pattr;
