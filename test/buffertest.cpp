@@ -41,7 +41,7 @@ static void scan1() {
 		for (unsigned page=start; page<start+10; page++) {
 			BufferFrame &bf = bm->fixPage(page, false);
 			unsigned newcount = reinterpret_cast<unsigned*>(bf.getData())[0];
-			ASSERT_LE(counters[page], newcount);
+			EXPECT_LE(counters[page], newcount);
 			counters[page]=newcount;
 			bm->unfixPage(bf, false);
 		}

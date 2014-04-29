@@ -12,15 +12,22 @@ using namespace std;
 
 namespace {
 
+TEST(BufferManagerTest, InitAndDestructEmpty) {
+	testutil::Timeout timer(200);
+	BufferManager b(0);
+	EXPECT_EQ(0, b.size());
+	timer.finished();
+}
+
 TEST(BufferManagerTest, InitAndDestruct) {
-	testutil::Timeout timer(100);
+	testutil::Timeout timer(200);
 	BufferManager b(1);
 	EXPECT_EQ(1, b.size());
 	timer.finished();
 }
 
 TEST(BufferManagerTest, CanFix) {
-	testutil::Timeout timer(100);
+	testutil::Timeout timer(200);
 
 	BufferManager b(1);
 	BufferFrame &f = b.fixPage(1, false);
@@ -31,7 +38,7 @@ TEST(BufferManagerTest, CanFix) {
 }
 
 TEST(BufferManagerTest, CanFixExclusive) {
-	testutil::Timeout timer(100);
+	testutil::Timeout timer(200);
 
 	BufferManager b(1);
 	BufferFrame &f2 = b.fixPage(2, true);
@@ -42,7 +49,7 @@ TEST(BufferManagerTest, CanFixExclusive) {
 }
 
 TEST(BufferManagerTest, CanFixUnfixDirty) {
-	testutil::Timeout timer(100);
+	testutil::Timeout timer(200);
 
 	BufferManager b(1);
 	BufferFrame &f2 = b.fixPage(2, true);
@@ -53,7 +60,7 @@ TEST(BufferManagerTest, CanFixUnfixDirty) {
 }
 
 TEST(BufferManagerTest, CanFixUnfixTwice) {
-	testutil::Timeout timer(100);
+	testutil::Timeout timer(400);
 
 	BufferManager b(2);
 	BufferFrame &f = b.fixPage(1, false);
@@ -78,7 +85,7 @@ TEST(BufferManagerTest, Basic) {
 	srand(time(0));
 	int a = rand(), b = rand(), c = rand();
 
-	testutil::Timeout timer(100);
+	testutil::Timeout timer(400);
 
 	BufferManager bm(16);
 	{
