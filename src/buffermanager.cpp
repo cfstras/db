@@ -141,35 +141,32 @@ void BufferManager::freePage() { // free page! what did he do wrong?
 
 bool BufferManager::tryFreeingPage(unique_lock<mutex> &lock) {
 	BufferFrame *frame;
-	{
-		//lock_guard<mutex>(slots_mutex);
 
-		auto it = slots.begin();
-		// start at random element
-		advance(it, rand() % slots.size());
+	auto it = slots.begin();
+	// start at random element
+	advance(it, rand() % slots.size());
 
-		// iterate through them, find an unfixed one
-		size_t i = 0;
-		int err;
-		while ((err = pthread_rwlock_trywrlock(&it->second->latch_)) == EBUSY) {
-			if (err != 0 && err != EBUSY) {
-				util::checkReturn("getting frame lock", err);
-			}
-			++it; ++i;
-			if (i > slots.size()) break;
-			if (it == slots.end()) it = slots.begin();
+	// iterate through them, find an unfixed one
+	size_t i = 0;
+	int err;
+	while ((err = pthread_rwlock_trywrlock(&it->second->latch_)) == EBUSY) {
+		if (err != 0 && err != EBUSY) {
+			util::checkReturn("getting frame lock", err);
 		}
-		if (it == slots.end()) {
-			return false;
-		}
-
-		// clear it from the map
-		frame = it->second;
-
-		slots.erase(it);
-		util::checkReturn("unlocking frame for free",
-			pthread_rwlock_unlock(&frame->latch_));
+		++it; ++i;
+		if (i > slots.size()) break;
+		if (it == slots.end()) it = slots.begin();
 	}
+	if (it == slots.end()) {
+		return false;
+	}
+
+	// clear it from the map
+	frame = it->second;
+
+	slots.erase(it);
+	util::checkReturn("unlocking frame for free",
+		pthread_rwlock_unlock(&frame->latch_));
 
 	flushNow(*frame);
 	delete frame;

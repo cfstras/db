@@ -92,7 +92,6 @@ TEST(BufferManagerTest, CanWaitForFreeFrame) {
 	b.unfixPage(f2, false);
 
 	giveBack.join();
-
 	timer.finished();
 }
 
