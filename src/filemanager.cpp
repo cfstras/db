@@ -42,7 +42,9 @@ FileManager::FileManager(string basePath) : basePath_(basePath) {
 FileManager::~FileManager() {
 	//TODO Tell BufferManager to close all chunks and get lost
 
+#ifndef SILENT
 	cout << "closing files." << endl;
+#endif
 	// close all files
 	{
 		lock_guard<mutex> g(openFiles_mutex);
