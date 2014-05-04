@@ -34,6 +34,9 @@ FileManager* FileManager::instance() {
 }
 
 FileManager::FileManager(string basePath) : basePath_(basePath) {
+	if (basePath_[basePath_.length()] != '/') {
+		basePath_ += '/';
+	}
 }
 
 FileManager::~FileManager() {
