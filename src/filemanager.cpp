@@ -81,7 +81,9 @@ int FileManager::getFile(uint64_t pageId) {
 	int res = stat(basePath().c_str(), &dirStat);
 	if (errno == ENOENT) {
 		res = mkdir(basePath().c_str(), 0700);
-		util::checkReturn("creating chunk directory "+basePath(), res);
+		if (errno != EEXIST) {
+			util::checkReturn("creating chunk directory "+basePath(), res);
+		}
 	} else if (res == -1) {
 		util::checkReturn("checking chunk directory "+basePath(), res);
 	} else if (!S_ISDIR(dirStat.st_mode) && !S_ISDIR(dirStat.st_mode)) {
