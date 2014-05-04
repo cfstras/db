@@ -12,6 +12,8 @@
 
 #include <string>
 
+typedef uint64_t TID;
+
 namespace util {
 
 /**
@@ -20,13 +22,16 @@ namespace util {
  */
 void checkReturn(std::string what, int err);
 
-inline static uint16_t chunkId(uint64_t pageId) {
+inline static uint16_t chunkId(TID pageId) {
 	return (pageId & 0xffff000000000000LL) >> 6*8;
+}
+
+inline static uint64_t extractPage(TID pageId) {
+	return (pageId & 0x0000ffffffffffffLL);
 }
 
 } // namespace
 
-typedef uint64_t TID;
 
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class

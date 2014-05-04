@@ -24,7 +24,8 @@ BufferManager::BufferManager(unsigned size) :
 }
 
 BufferManager::~BufferManager() {
-	slots_mutex.lock();
+	slot_condition.notify_all();
+	lock_guard<mutex> g(slots_mutex);
 	for(const auto &entry : slots) {
 		BufferFrame* f = entry.second;
 		if (f != nullptr) {
@@ -34,7 +35,6 @@ BufferManager::~BufferManager() {
 			delete f;
 		}
 	}
-	slots_mutex.unlock();
 }
 
 
@@ -42,21 +42,18 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 	BufferFrame *frame;
 
 	slots_mutex.lock();
+	auto size = slots.size();
 	auto it = slots.find(pageId);
+	slots_mutex.unlock();
 
 	if (it == slots.end()) {
 		// make a new one
-
-		int size = slots.size();
-		slots_mutex.unlock(); // release asap
-
 		if (size >= size_) {
 			freePage();
 		}
 		frame = new BufferFrame();
 		load(*frame, pageId);
 	} else {
-		slots_mutex.unlock(); // release asap
 		frame = it->second;
 	}
 
@@ -69,10 +66,9 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
 			pthread_rwlock_rdlock(&frame->latch_));
 	}
 
-	slots_mutex.lock();
-	slots[pageId] = frame;
-	slots_mutex.unlock();
-
+	{	lock_guard<mutex> g(slots_mutex);
+		slots[pageId] = frame;
+	}
 	return *frame;
 }
 
@@ -82,7 +78,7 @@ void BufferManager::unfixPage(BufferFrame& frame, bool isDirty) {
 
 	util::checkReturn("unlocking frame",
 		pthread_rwlock_unlock(&frame.latch_));
-	slot_condition_.notify_one();
+	slot_condition.notify_one();
 }
 
 uint64_t BufferManager::offset(uint64_t pageId) {
@@ -139,7 +135,7 @@ void BufferManager::queueFlush(BufferFrame& frame) {
 
 void BufferManager::freePage() { // free page! what did he do wrong?
 	unique_lock<mutex> lock(slots_mutex);
-	slot_condition_.wait(lock, [&lock, this] {
+	slot_condition.wait(lock, [&lock, this] {
 		return tryFreeingPage(lock);
 	});
 }
@@ -150,6 +146,7 @@ bool BufferManager::tryFreeingPage(unique_lock<mutex> &lock) {
 	auto it = slots.begin();
 	// start at random element
 	advance(it, rand() % slots.size());
+	lock.unlock();
 
 	// iterate through them, find an unfixed one
 	size_t i = 0;
@@ -158,22 +155,30 @@ bool BufferManager::tryFreeingPage(unique_lock<mutex> &lock) {
 		if (err != 0 && err != EBUSY) {
 			util::checkReturn("getting frame lock", err);
 		}
+		lock.lock();
+
 		++it; ++i;
 		if (i > slots.size()) break;
 		if (it == slots.end()) it = slots.begin();
+
+		lock.unlock();
 	}
 	if (it == slots.end()) {
 		return false;
 	}
 
 	// clear it from the map
+	lock.lock();
 	frame = it->second;
-
 	slots.erase(it);
+	lock.unlock(); // release lock while flushing
+
 	util::checkReturn("unlocking frame for free",
 		pthread_rwlock_unlock(&frame->latch_));
 
 	flushNow(*frame);
 	delete frame;
+
+	lock.lock();
 	return true;
 }

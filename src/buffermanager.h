@@ -81,5 +81,5 @@ private:
 	 * Used to wait for free pages.
 	 * Notified whenever a page gets thrown out.
 	 */
-	std::condition_variable slot_condition_;
+	std::condition_variable slot_condition;
 };

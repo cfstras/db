@@ -21,7 +21,7 @@ TEST(TestUtilTest, Timer) {
 }
 
 TEST(TestUtilTest, TimerFail) {
-	EXPECT_FATAL_FAILURE_ON_ALL_THREADS(run(100, 2000), "Timeout");
+	EXPECT_FATAL_FAILURE_ON_ALL_THREADS(run(100, 1000), "Timeout");
 }
 
 } // namespace
