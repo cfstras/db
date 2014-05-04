@@ -6,6 +6,7 @@
 #include <thread>
 
 #include "buffermanager.h"
+#include "filemanager.h"
 #include "testutil.h"
 
 using namespace std;
@@ -22,6 +23,16 @@ TEST(BufferManagerTest, InitAndDestructEmpty) {
 TEST(BufferManagerTest, InitAndDestruct) {
 	testutil::Timeout timer(200);
 	BufferManager b(1);
+	EXPECT_EQ(1, b.size());
+	timer.finished();
+}
+
+
+TEST(BufferManagerTest, InitAndDestructAlt) {
+	testutil::Timeout timer(200);
+
+	FileManager f("test_data");
+	BufferManager b(1, &f);
 	EXPECT_EQ(1, b.size());
 	timer.finished();
 }
@@ -108,7 +119,9 @@ TEST(BufferManagerTest, Basic) {
 
 	testutil::Timeout timer(400);
 
-	BufferManager bm(16);
+	FileManager f("test_data");
+
+	BufferManager bm(16, &f);
 	{
 		BufferFrame &f = bm.fixPage(page, true);
 

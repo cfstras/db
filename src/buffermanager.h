@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include "util.h"
+#include "filemanager.h"
 #include "bufferframe.h"
 
 class BufferManager {
@@ -15,6 +16,12 @@ public:
 	 * Creates a new instance which keeps up to size frames in memory at one time.
 	 */
 	BufferManager(unsigned size);
+
+	/**
+	 * Creates a new instance which keeps up to size frames in memory at one time.
+	 * @param fm to use a different-than-default FileManager.
+	 */
+	BufferManager(unsigned size, FileManager* fm);
 
 	/**
 	 * Writes all dirty frames and frees all resources.
@@ -61,6 +68,7 @@ private:
 	 */
 	bool tryFreeingPage(std::unique_lock<std::mutex> &lock);
 
+	FileManager* fileManager_;
 	unsigned size_;
 
 	/**

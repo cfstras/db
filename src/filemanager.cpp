@@ -41,15 +41,18 @@ FileManager::~FileManager() {
 
 	cout << "closing files." << endl;
 	// close all files
-	for (auto it = openFiles.begin(); it != openFiles.end(); it++) {
-		int ret = close(it->second);
-		if (ret == -1) {
-			cerr << "FATAL: could not close chunk " << it->first << ": "<<
-					strerror(errno) << endl;
-			//TODO wait until this chunk is closed, too
+	{
+		lock_guard<mutex> g(openFiles_mutex);
+		for (auto it = openFiles.begin(); it != openFiles.end(); it++) {
+			int ret = close(it->second);
+			if (ret == -1) {
+				cerr << "FATAL: could not close chunk " << it->first << ": "<<
+						strerror(errno) << endl;
+				//TODO wait until this chunk is closed, too
+			}
 		}
+		openFiles.clear();
 	}
-	openFiles.clear();
 }
 
 uint16_t FileManager::chunkId(uint64_t pageId) {
@@ -60,9 +63,12 @@ int FileManager::getFile(uint64_t pageId) {
 	//TODO close some files if too many are open
 
 	uint16_t chunk = chunkId(pageId);
-	auto it = openFiles.find(chunk);
-	if (it != openFiles.end()) {
-		return it->second;
+	{
+		lock_guard<mutex> g(openFiles_mutex);
+		auto it = openFiles.find(chunk);
+		if (it != openFiles.end()) {
+			return it->second;
+		}
 	}
 
 	string path = basePath() + to_string(chunk);
@@ -82,6 +88,9 @@ int FileManager::getFile(uint64_t pageId) {
 
 	int fd = open(path.c_str(), O_RDWR | O_CREAT | O_SYNC, 0700);
 	if (fd == -1) util::checkReturn("opening chunk file "+path, errno);
-	openFiles.emplace(chunk, fd);
+	{
+		lock_guard<mutex> g(openFiles_mutex);
+		openFiles.emplace(chunk, fd);
+	}
 	return fd;
 }

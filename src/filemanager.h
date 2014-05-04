@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <mutex>
 #include <cstdint>
 
 #include "util.h"
@@ -10,14 +11,16 @@ class FileManager {
 public:
 	static FileManager* instance();
 
+	// for building your own custom FileManager
+	FileManager(std::string basePath);
+	~FileManager();
+
 	std::string basePath() {return basePath_;}
 	uint16_t chunkId(uint64_t pageId);
 	int getFile(uint64_t pageId);
 
 private:
 	DISALLOW_COPY_AND_ASSIGN(FileManager);
-	FileManager(std::string basePath);
-	~FileManager();
 
 	static void deconstruct(int param);
 	static void deconstruct();
@@ -25,5 +28,6 @@ private:
 	static FileManager* instance_;
 
 	std::string basePath_;
+	std::mutex openFiles_mutex;
 	std::unordered_map<uint16_t, int> openFiles;
 };

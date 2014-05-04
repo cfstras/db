@@ -6,16 +6,21 @@
 #include <fcntl.h>
 
 #include "bufferframe.h"
-#include "filemanager.h"
 
 using namespace std;
 
-BufferManager::BufferManager(unsigned size) :
+BufferManager::BufferManager(unsigned size, FileManager* fm) :
+	fileManager_(fm),
 	size_(size),
 	slots(size)
 {
-	// check for files
+	// TODO check for files
 	srand(time(0));
+}
+
+BufferManager::BufferManager(unsigned size) :
+	BufferManager(size, FileManager::instance())
+{
 }
 
 BufferManager::~BufferManager() {
