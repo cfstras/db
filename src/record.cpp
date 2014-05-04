@@ -18,8 +18,8 @@ Record::Record(unsigned len, const char* const ptr) : len_(len) {
 }
 
 const char* Record::data() const {
-	return data_
-;}
+	return data_;
+}
 
 unsigned Record::len() const {
 	return len_;
