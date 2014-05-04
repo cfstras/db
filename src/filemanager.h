@@ -16,7 +16,6 @@ public:
 	~FileManager();
 
 	std::string basePath() {return basePath_;}
-	uint16_t chunkId(uint64_t pageId);
 	int getFile(uint64_t pageId);
 
 private:

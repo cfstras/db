@@ -20,7 +20,13 @@ namespace util {
  */
 void checkReturn(std::string what, int err);
 
+inline static uint16_t chunkId(uint64_t pageId) {
+	return (pageId & 0xffff000000000000LL) >> 6*8;
+}
+
 } // namespace
+
+typedef uint64_t TID;
 
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class

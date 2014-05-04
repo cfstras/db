@@ -58,14 +58,10 @@ FileManager::~FileManager() {
 	}
 }
 
-uint16_t FileManager::chunkId(uint64_t pageId) {
-	return (pageId & 0xffff000000000000LL) << 6;
-}
-
 int FileManager::getFile(uint64_t pageId) {
 	//TODO close some files if too many are open
 
-	uint16_t chunk = chunkId(pageId);
+	uint16_t chunk = util::chunkId(pageId);
 	{
 		lock_guard<mutex> g(openFiles_mutex);
 		auto it = openFiles.find(chunk);
