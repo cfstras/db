@@ -3,6 +3,41 @@
 #include "record.h"
 #include "util.h"
 
+namespace {
+
+// 16-bit in-page slot addresses --> 65K max page size
+
+#pragma pack(push) //TODO is this correct?
+#pragma pack(1)
+
+typedef struct {
+	union {
+		uint64_t TID;
+
+		struct {
+			uint8_t T; // if != 255, TID points to other record
+			uint8_t S; // if 0, item is at offset
+			uint16_t offset;
+			uint16_t len;
+
+			uint16_t __padding;
+		};
+	};
+} Slot;
+
+#pragma pack(pop)
+
+typedef struct {
+	// total number of slots
+	uint16_t count;
+	// offset to the last-inserted date. (topmost used byte)
+	uint16_t lastData;
+	// pointer to the slots. length is count.
+	Slot slots[1];
+} PageHeader;
+
+} // namespace
+
 class SPSegment {
 public:
 	/**
