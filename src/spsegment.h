@@ -55,6 +55,15 @@ typedef struct {
 	Slot slots[1];
 } PageHeader;
 
+class SlottedPage {
+public:
+	SlottedPage(BufferFrame *frame);
+	SlottedPage(SlottedPage& a) = delete;
+
+	BufferFrame* frame;
+	PageHeader* header;
+};
+
 } // namespace
 
 class SPSegment {
@@ -103,13 +112,26 @@ private:
 	DISALLOW_COPY_AND_ASSIGN(SPSegment);
 
 	// builds the page ID for a TID
-	PageID pageIDFromTID(TID tid);
+	inline PageID pageIDFromTID(TID tid) {
+		return putSegmentInPageID(util::extractPageIDFromTID(tid));
+	}
+
+	inline PageID putSegmentInPageID(PageID pageID) {
+		//                                       12 nibbles
+		return (static_cast<PageID>(segment_) << 12 * 4) | pageID;
+	}
+
+	/**
+	 * Load a page from this segment. Upper 16 bits of pageID have to be null.
+	 * If page is out of range, null is returned.
+	 */
+	std::unique_ptr<SlottedPage> loadPage(PageID pageID);
 
 	std::shared_ptr<BufferManager> bufferManager_;
 
 	SegmentID segment_;
 	PageID headPageID;
 	BufferFrame* headerFrame;
-	PageHeader* header;
+	SegmentHeader* header;
 
 };

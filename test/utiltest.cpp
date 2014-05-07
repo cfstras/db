@@ -14,8 +14,8 @@ TEST(UtilTest, extractSegmentFromPageID) {
 	EXPECT_EQ(0xff00,	extractSegmentFromPageID(0xff00000000000000ULL));
 	EXPECT_EQ(0xcafe,	extractSegmentFromPageID(0xcafe000000000000ULL));
 
-	EXPECT_EQ(1,		pageIDFromSegmentID(extractSegmentFromPageID(1)));
-	EXPECT_EQ(0xcafe,	pageIDFromSegmentID(extractSegmentFromPageID(0xcafe)));
+	EXPECT_EQ(1,		extractSegmentFromPageID(pageIDFromSegmentID(1)));
+	EXPECT_EQ(0xcafe,	extractSegmentFromPageID(pageIDFromSegmentID(0xcafe)));
 }
 
 TEST(UtilTest, extractPageFromPageID) {
