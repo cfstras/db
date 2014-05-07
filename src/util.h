@@ -13,6 +13,8 @@
 #include <string>
 
 typedef uint64_t TID;
+typedef uint64_t PageID;
+typedef uint16_t SegmentID;
 
 namespace util {
 
@@ -22,12 +24,22 @@ namespace util {
  */
 void checkReturn(std::string what, int err);
 
-inline static uint16_t chunkId(TID pageId) {
-	return (pageId & 0xffff000000000000LL) >> 6*8;
+inline static SegmentID extractSegmentFromPageID(PageID pageId) {
+	return (pageId & 0xffff000000000000ULL) >> 12 * 4; // 12 nibbles
 }
 
-inline static uint64_t extractPage(TID pageId) {
-	return (pageId & 0x0000ffffffffffffLL);
+// Only lower 48bit matter
+inline static uint64_t extractPageFromPageID(PageID pageId) {
+	return (pageId & 0x0000ffffffffffffULL);
+}
+
+inline static SegmentID extractSlotIDFromTID(TID tid) {
+	return (tid & 0x000000000000ffffULL);
+}
+
+// Only lower 48 bit matter
+inline static uint64_t extractPageIDFromTID(TID tid) {
+	return (tid & 0xffffffffffff0000ULL) >> 4 * 4; // 4 nibbles
 }
 
 } // namespace

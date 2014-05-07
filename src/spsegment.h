@@ -16,11 +16,18 @@ typedef struct {
 
 		struct {
 			uint8_t T; // if != 255, TID points to other record
-			uint8_t S; // if 0, item is at offset
+
+			/**
+			 * if 0, item is at offset, length
+			 * else item was moved from somewhere:
+			 * item is at offset+(8bytes), len,
+			 * offset contains original TID
+			 */
+			uint8_t S;
+			uint16_t __padding;
+
 			uint16_t offset;
 			uint16_t len;
-
-			uint16_t __padding;
 		};
 	};
 } Slot;
@@ -41,10 +48,10 @@ typedef struct {
 class SPSegment {
 public:
 	/**
-	 * Loads a slotted page segment from a pageID.
-	 * The page at that address must contain a valid SPSegment header.
+	 * Loads a slotted page segment from a segment id.
+	 * page 0 at that address must contain a valid SPSegment header.
 	 */
-	SPSegment(uint64_t headPageId);
+	SPSegment(SegmentID segmentID);
 
 	/**
 	 * Creates a new SPSegment starting at a given page id.
@@ -80,6 +87,7 @@ public:
 private:
 	DISALLOW_COPY_AND_ASSIGN(SPSegment);
 
+	SegmentID segment_;
 	//TODO
 
 };

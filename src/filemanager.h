@@ -16,7 +16,7 @@ public:
 	~FileManager();
 
 	std::string basePath() {return basePath_;}
-	int getFile(uint64_t pageId);
+	int getFile(PageID pageId);
 
 private:
 	DISALLOW_COPY_AND_ASSIGN(FileManager);

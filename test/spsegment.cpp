@@ -5,7 +5,7 @@
 namespace {
 
 TEST(SPSegment, Construct) {
-	SPSegment();
+	SPSegment(1);
 }
 
 } // namespace

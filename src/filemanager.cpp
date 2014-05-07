@@ -40,7 +40,7 @@ FileManager::FileManager(string basePath) : basePath_(basePath) {
 }
 
 FileManager::~FileManager() {
-	//TODO Tell BufferManager to close all chunks and get lost
+	//TODO Tell BufferManager to close all segments and get lost
 
 #ifndef SILENT
 	cout << "closing files." << endl;
@@ -51,28 +51,28 @@ FileManager::~FileManager() {
 		for (auto it = openFiles.begin(); it != openFiles.end(); it++) {
 			int ret = close(it->second);
 			if (ret == -1) {
-				cerr << "FATAL: could not close chunk " << it->first << ": "<<
+				cerr << "FATAL: could not close segment " << it->first << ": "<<
 						strerror(errno) << endl;
-				//TODO wait until this chunk is closed, too
+				//TODO wait until this segment is closed, too
 			}
 		}
 		openFiles.clear();
 	}
 }
 
-int FileManager::getFile(uint64_t pageId) {
+int FileManager::getFile(PageID pageId) {
 	//TODO close some files if too many are open
 
-	uint16_t chunk = util::chunkId(pageId);
+	uint16_t segment = util::extractSegmentFromPageID(pageId);
 	{
 		lock_guard<mutex> g(openFiles_mutex);
-		auto it = openFiles.find(chunk);
+		auto it = openFiles.find(segment);
 		if (it != openFiles.end()) {
 			return it->second;
 		}
 	}
 
-	string path = basePath() + to_string(chunk);
+	string path = basePath() + to_string(segment);
 
 	// check if the folder exists
 	struct stat dirStat;
@@ -80,20 +80,20 @@ int FileManager::getFile(uint64_t pageId) {
 	if (errno == ENOENT) {
 		res = mkdir(basePath().c_str(), 0700);
 		if (errno != EEXIST) {
-			util::checkReturn("creating chunk directory "+basePath(), res);
+			util::checkReturn("creating segment directory "+basePath(), res);
 		}
 	} else if (res == -1) {
-		util::checkReturn("checking chunk directory "+basePath(), res);
+		util::checkReturn("checking segment directory "+basePath(), res);
 	} else if (!S_ISDIR(dirStat.st_mode) && !S_ISDIR(dirStat.st_mode)) {
 		// wat
 		throw exception(); //TODO prettier exceptions
 	}
 
 	int fd = open(path.c_str(), O_RDWR | O_CREAT | O_SYNC, 0700);
-	if (fd == -1) util::checkReturn("opening chunk file "+path, errno);
+	if (fd == -1) util::checkReturn("opening segment file "+path, errno);
 	{
 		lock_guard<mutex> g(openFiles_mutex);
-		openFiles.emplace(chunk, fd);
+		openFiles.emplace(segment, fd);
 	}
 	return fd;
 }

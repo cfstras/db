@@ -1,14 +1,30 @@
+
+# build stuff
 *.o
 bin/
 build/
 build_test/
+
+# database data folders
 data/
 test_data/
+
+# perf records
+*.data
+*.data.old
+
+# sublime temps
 *.sublime-workspace
-*.bin
+
+#ctags
 .tags
 .tags_sorted_by_file
+
+# qtcreator stuff
+*.bin
 *.user
 *.user.*
+
+# bcov dumps
 .bcovdump
 .report/
