@@ -1,11 +1,19 @@
 #pragma once
 
+#include <memory>
+
+#include "buffermanager.h"
 #include "record.h"
 #include "util.h"
 
 namespace {
 
 // 16-bit in-page slot addresses --> 65K max page size
+
+typedef struct {
+	uint64_t pageCount;
+	//TODO add freeSpaceInventory
+} SegmentHeader;
 
 #pragma pack(push) //TODO is this correct?
 #pragma pack(1)
@@ -37,8 +45,12 @@ typedef struct {
 typedef struct {
 	// total number of slots
 	uint16_t count;
-	// offset to the last-inserted date. (topmost used byte)
-	uint16_t lastData;
+	// first free slot id
+	uint16_t firstFreeSlot;
+	// lower end of the data
+	uint16_t dataStart;
+	// space that would be available after compacting
+	uint16_t freeSpace;
 	// pointer to the slots. length is count.
 	Slot slots[1];
 } PageHeader;
@@ -51,23 +63,24 @@ public:
 	 * Loads a slotted page segment from a segment id.
 	 * page 0 at that address must contain a valid SPSegment header.
 	 */
-	SPSegment(SegmentID segmentID);
+	SPSegment(SegmentID segmentID, std::shared_ptr<BufferManager> bufferManager);
 
 	/**
-	 * Creates a new SPSegment starting at a given page id.
-	 * Overwrites any data which is currently stored there.
-	 * @param slotSize slot size in bytes
+	 * Creates a new SPSegment in that id, if create is true
 	 */
-	SPSegment(uint64_t start, uint64_t slotSize);
+	SPSegment(SegmentID segmentID, std::shared_ptr<BufferManager> bufferManager,
+		bool create);
+
+	~SPSegment();
 
 	/**
-	 * Inserts a record into this slotted page.
+	 * Inserts a record into this slotted page segment.
 	 * @return the assigned TID
 	 */
 	TID insert(const Record& record);
 
 	/**
-	 * Removes a record from this page and updates page header accordingly.
+	 * Removes a record from this segment and updates page header accordingly.
 	 * @return true on success, false if TID does not correspond to a Record
 	 */
 	bool remove(TID tid);
@@ -84,10 +97,19 @@ public:
 	 */
 	bool update(TID tid, const Record& record);
 
+	SegmentID segment() { return segment_; }
+
 private:
 	DISALLOW_COPY_AND_ASSIGN(SPSegment);
 
+	// builds the page ID for a TID
+	PageID pageIDFromTID(TID tid);
+
+	std::shared_ptr<BufferManager> bufferManager_;
+
 	SegmentID segment_;
-	//TODO
+	PageID headPageID;
+	BufferFrame* headerFrame;
+	PageHeader* header;
 
 };

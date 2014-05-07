@@ -33,6 +33,10 @@ inline static uint64_t extractPageFromPageID(PageID pageId) {
 	return (pageId & 0x0000ffffffffffffULL);
 }
 
+inline static PageID pageIDFromSegmentID(SegmentID segment) {
+	return static_cast<PageID>(segment) << 12 * 4;
+}
+
 inline static SegmentID extractSlotIDFromTID(TID tid) {
 	return (tid & 0x000000000000ffffULL);
 }
