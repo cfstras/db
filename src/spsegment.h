@@ -20,7 +20,7 @@ typedef struct {
 
 typedef struct {
 	union {
-		uint64_t TID;
+		uint64_t tid;
 
 		struct {
 			uint8_t T; // if != 255, TID points to other record
@@ -57,11 +57,14 @@ typedef struct {
 
 class SlottedPage {
 public:
-	SlottedPage(BufferFrame *frame);
+	SlottedPage(BufferFrame *frame, PageID pageID);
 	SlottedPage(SlottedPage& a) = delete;
 
 	BufferFrame* frame;
 	PageHeader* header;
+
+	// the page ID, with segment id inside
+	PageID pageID;
 };
 
 } // namespace
@@ -111,6 +114,8 @@ public:
 private:
 	DISALLOW_COPY_AND_ASSIGN(SPSegment);
 
+	/** helper methods **/
+
 	// builds the page ID for a TID
 	inline PageID pageIDFromTID(TID tid) {
 		return putSegmentInPageID(util::extractPageIDFromTID(tid));
@@ -122,10 +127,23 @@ private:
 	}
 
 	/**
-	 * Load a page from this segment. Upper 16 bits of pageID have to be null.
+	 * Load a page from this segment. Upper 16 bits of pageID must be 0.
 	 * If page is out of range, null is returned.
 	 */
-	std::unique_ptr<SlottedPage> loadPage(PageID pageID);
+	SlottedPage* loadPage(PageID pageID);
+
+	/**
+	 * Unloads a page.
+	 * @param dirty specifies whether the page could be dirty.
+	 */
+	void unloadPage(SlottedPage* page, bool dirty);
+
+	/**
+	 * Create a new page at the end of this segment
+	 */
+	SlottedPage* createPage();
+
+	/** fields **/
 
 	std::shared_ptr<BufferManager> bufferManager_;
 

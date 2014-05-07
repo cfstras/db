@@ -29,7 +29,7 @@ SPSegment::~SPSegment() {
 	bufferManager_->unfixPage(*headerFrame, true);
 }
 
-unique_ptr<SlottedPage> SPSegment::loadPage(PageID pageID) {
+SlottedPage* SPSegment::loadPage(PageID pageID) {
 	assert(0 == pageID >> 12 * 4);
 
 	// page id 0 is the header
@@ -40,18 +40,73 @@ unique_ptr<SlottedPage> SPSegment::loadPage(PageID pageID) {
 	pageID = putSegmentInPageID(pageID);
 	BufferFrame &frame = bufferManager_->fixPage(pageID, true);
 
-	unique_ptr<SlottedPage> page(new SlottedPage(&frame));
+	SlottedPage* page = new SlottedPage(&frame, pageID);
 	// TODO integrity check?
 	return page;
 }
 
-SlottedPage::SlottedPage(BufferFrame *f) :
-	frame(f), header((PageHeader*)f->getData()) {
+SlottedPage* SPSegment::createPage() {
+	PageID pageID = ++header->pageCount;
+	pageID = putSegmentInPageID(pageID);
+	BufferFrame &frame = bufferManager_->fixPage(pageID, true);
+	SlottedPage* page = new SlottedPage(&frame, pageID);
+
+	memset(page->header, 0, sizeof(PageHeader));
+	page->header->dataStart = PAGE_SIZE;
+	page->header->freeSpace = PAGE_SIZE - sizeof(PageHeader);
+
+	return page;
+}
+
+void SPSegment::unloadPage(SlottedPage* page, bool dirty) {
+	//TODO clean things up?
+	bufferManager_->unfixPage(*page->frame, dirty);
+	delete page;
+}
+
+SlottedPage::SlottedPage(BufferFrame *f, PageID page) :
+	frame(f),
+	header((PageHeader*)f->getData()),
+	pageID(page) {
 }
 
 TID SPSegment::insert(const Record& r) {
-	//TODO implement
-	return 0;
+	// find free page
+
+	bool foundOne = false;
+	SlottedPage *page;
+	for (PageID pageID = 1; (page = loadPage(pageID)) != nullptr && !foundOne; pageID++) {
+		if (page->header->count*sizeof(Slot) + sizeof(PageHeader) <
+			page->header->dataStart - r.len()) {
+			foundOne = true;
+		} else {
+			//TODO page is full. compactify?
+			// unload page
+			unloadPage(page, false);
+			page = nullptr;
+		}
+	}
+	if (page == nullptr) {
+		page = createPage();
+	}
+
+	uint16_t slotIndex = page->header->firstFreeSlot++;
+	page->header->count++;
+	page->header->freeSpace -= r.len();
+
+	Slot slot;
+	slot.tid = 0;
+	slot.T = 255; slot.S = 0;
+	slot.offset = page->header->dataStart;
+	slot.len = r.len();
+
+	page->header->slots[slotIndex] = slot;
+	memcpy(page->header + slot.offset, r.data(), slot.len);
+
+	page->header->dataStart -= slot.len;
+
+	TID tid = slotIndex | (page->pageID << 4 * 4);
+	return tid;
 }
 
 Record SPSegment::lookup(TID t) {
