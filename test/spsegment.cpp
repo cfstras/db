@@ -31,6 +31,17 @@ protected:
 
 };
 
+TEST_F(SPSegmentTest, putPageIDInSegment) {
+	SPSegment segment(1, bm, true);
+	EXPECT_EQ(0x0001000000000001ULL, segment.putSegmentInPageID(1));
+}
+
+TEST_F(SPSegmentTest, isPageInThisSegment) {
+	SPSegment segment(2, bm, true);
+	EXPECT_EQ(true, segment.isPageInThisSegment(0));
+	EXPECT_EQ(false, segment.isPageInThisSegment(1));
+}
+
 TEST_F(SPSegmentTest, Construct) {
 	SPSegment segment(1, bm, true);
 	EXPECT_EQ(1, segment.segment());
@@ -49,12 +60,13 @@ TEST_F(SPSegmentTest, Use) {
 	s[0] = 'a' + (rand() % ('z'-'a'));
 	string s2(s);
 
-	Record r(s.length()+1, s2.c_str());
+	Record r(s.length(), s2.c_str());
 	TID tid = segment.insert(r);
 	EXPECT_NE(0, tid);
 
 	Record r2 = segment.lookup(tid);
-	EXPECT_EQ(s, r2.data());
+	string s3(r2.data(), r2.len());
+	EXPECT_EQ(s, s3);
 }
 
 } // namespace
