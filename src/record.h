@@ -7,9 +7,9 @@ class Record {
 public:
 	// Move Constructor
 	Record(Record&& t);
-	// Constructor
+	// Constructor, creates a copy of the memory
 	Record(unsigned len, const char* const ptr);
-	// Destructor
+	// Destructor, deletes memory
 	~Record();
 
 	// Get pointer to data

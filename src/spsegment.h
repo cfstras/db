@@ -57,11 +57,24 @@ typedef struct {
 
 class SlottedPage {
 public:
-	SlottedPage(BufferFrame *frame, PageID pageID);
+	/**
+	 * Load a page from this segment. Upper 16 bits of pageID must be 0.
+	 */
+	SlottedPage(PageID pageID, std::shared_ptr<BufferManager> bm);
+
 	SlottedPage(SlottedPage& a) = delete;
+	~SlottedPage();
+
+	/**
+	 * Initialize this page to a fresh, clean one.
+	 */
+	void init();
+
+	std::shared_ptr<BufferManager> bufferManager_;
 
 	BufferFrame* frame;
 	PageHeader* header;
+	bool dirty;
 
 	// the page ID, with segment id inside
 	PageID pageID;
@@ -111,14 +124,12 @@ public:
 
 	SegmentID segment() { return segment_; }
 
-private:
-	DISALLOW_COPY_AND_ASSIGN(SPSegment);
-
 	/** helper methods **/
 
-	// builds the page ID for a TID
-	inline PageID pageIDFromTID(TID tid) {
-		return putSegmentInPageID(util::extractPageIDFromTID(tid));
+	inline bool isPageInThisSegment(PageID pageID) {
+		// page id 0 is the header
+		// page id 1 is available when count >= 1
+		return util::extractPageFromPageID(pageID) <= header->pageCount;
 	}
 
 	inline PageID putSegmentInPageID(PageID pageID) {
@@ -126,22 +137,13 @@ private:
 		return (static_cast<PageID>(segment_) << 12 * 4) | pageID;
 	}
 
-	/**
-	 * Load a page from this segment. Upper 16 bits of pageID must be 0.
-	 * If page is out of range, null is returned.
-	 */
-	SlottedPage* loadPage(PageID pageID);
+	// builds the page ID for a TID
+	inline PageID pageIDFromTID(TID tid) {
+		return putSegmentInPageID(util::extractPageIDFromTID(tid));
+	}
 
-	/**
-	 * Unloads a page.
-	 * @param dirty specifies whether the page could be dirty.
-	 */
-	void unloadPage(SlottedPage* page, bool dirty);
-
-	/**
-	 * Create a new page at the end of this segment
-	 */
-	SlottedPage* createPage();
+private:
+	DISALLOW_COPY_AND_ASSIGN(SPSegment);
 
 	/** fields **/
 
