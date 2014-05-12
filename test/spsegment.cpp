@@ -29,6 +29,10 @@ protected:
 		delete fm; // will crash if anyone still has this shared ptr
 	}
 
+	char randChar() {
+		return 'a' + (rand() % ('z'-'a'));
+	}
+
 	void fillTest(uint64_t fillSize, bool unload, bool unloadBuffer, bool unloadFile);
 
 	FileManager *fm;
@@ -37,8 +41,8 @@ protected:
 };
 
 TEST_F(SPSegmentTest, putPageIDInSegment) {
-	SPSegment segment(1, bm, true);
-	EXPECT_EQ(0x0001000000000001ULL, segment.putSegmentInPageID(1));
+	SPSegment segment(0xcafe, bm, false);
+	EXPECT_EQ(0xcafe00000000beefULL, segment.putSegmentInPageID(0xbeef));
 }
 
 TEST_F(SPSegmentTest, isPageInThisSegment) {
@@ -61,10 +65,10 @@ TEST_F(SPSegmentTest, Use) {
 	SPSegment segment(1, bm, true);
 	ASSERT_EQ(1, segment.segment());
 
-	string s(" ");
-	s[0] = 'a' + (rand() % ('z'-'a'));
+	string s(randChar(), 1);
 
-	Record r(s.length(), s.c_str());
+	string s2(s);
+	Record r(s2.length(), s2.c_str());
 	TID tid = segment.insert(r);
 	EXPECT_NE(0, tid);
 
@@ -74,16 +78,16 @@ TEST_F(SPSegmentTest, Use) {
 }
 
 TEST_F(SPSegmentTest, UseWithUnload) {
-	string s(" ");
-	s[0] = 'a' + (rand() % ('z'-'a'));
-	string s2(s);
+	string s(randChar(), 1);
+
 	TID tid;
 
 	{
 		SPSegment segment(1, bm, true);
 		ASSERT_EQ(1, segment.segment());
 
-		Record r(s.length(), s2.c_str());
+		string s2(s);
+		Record r(s2.length(), s2.c_str());
 		tid = segment.insert(r);
 		EXPECT_NE(0, tid);
 	}
@@ -96,6 +100,51 @@ TEST_F(SPSegmentTest, UseWithUnload) {
 		EXPECT_EQ(s, s3);
 	}
 }
+
+TEST_F(SPSegmentTest, Remove) {
+	SPSegment segment(1, bm, true);
+	ASSERT_EQ(1, segment.segment());
+
+	string s(randChar(), 1);
+
+	string s2(s);
+	Record r(s2.length(), s2.c_str());
+	TID tid = segment.insert(r);
+	EXPECT_NE(0, tid);
+
+	Record r2 = segment.lookup(tid);
+	string s3(r2.data(), r2.len());
+	EXPECT_EQ(s, s3);
+
+	segment.remove(tid);
+	Record r3 = segment.lookup(tid);
+	EXPECT_EQ(0, r3.len());
+}
+
+TEST_F(SPSegmentTest, RemoveTwice) {
+	SPSegment segment(1, bm, true);
+	ASSERT_EQ(1, segment.segment());
+
+	string s(randChar(), 1);
+
+	string s2(s);
+	Record r(s2.length(), s2.c_str());
+	TID tid = segment.insert(r);
+	EXPECT_NE(0, tid);
+
+	Record r2 = segment.lookup(tid);
+	string s3(r2.data(), r2.len());
+	EXPECT_EQ(s, s3);
+
+	segment.remove(tid);
+	Record r3 = segment.lookup(tid);
+	EXPECT_EQ(0, r3.len());
+
+	segment.remove(tid);
+	Record r4 = segment.lookup(tid);
+	EXPECT_EQ(0, r4.len());
+}
+
 
 TEST_F(SPSegmentTest, FillPage) {
 	fillTest(2 * PAGE_SIZE, false, false, false);
@@ -162,7 +211,7 @@ void SPSegmentTest::fillTest(uint64_t fillSize, bool unload, bool unloadBuffer,
 		string s;
 		s.reserve(recordSize);
 		for (uint64_t i=0; i< recordSize; i++) {
-			s.push_back('a' + (rand() % ('z'-'a')));
+			s.push_back(randChar());
 		}
 		Record r(s.length(), s.c_str());
 		TID tid = segment->insert(r);
@@ -170,6 +219,7 @@ void SPSegmentTest::fillTest(uint64_t fillSize, bool unload, bool unloadBuffer,
 #ifndef SILENT
 		cerr << "insert "<<hex<<tid<< ": "<<s<<endl;
 #endif
+		EXPECT_EQ(strings.end(), strings.find(tid)) << "TID given twice";
 		strings.insert(pair<TID, string>(tid, s));
 	}
 
