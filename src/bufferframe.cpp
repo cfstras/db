@@ -10,7 +10,7 @@ BufferFrame::BufferFrame() :
 {
 	util::checkReturn("creating frame latch",
 		pthread_rwlock_init(&latch_, nullptr));
-	data_ = malloc(PAGE_SIZE);
+	data_ = calloc(PAGE_SIZE, 1);
 }
 
 BufferFrame::~BufferFrame() {

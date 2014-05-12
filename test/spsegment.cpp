@@ -92,7 +92,11 @@ TEST_F(SPSegmentTest, UseWithUnload) {
 		EXPECT_NE(0, tid);
 	}
 
-	SetUp(); // new BufferManager
+	bm = nullptr;
+	delete fm;
+	fm = new FileManager("test_data");
+	bm = shared_ptr<BufferManager>(new BufferManager(32, fm));
+
 	{
 		SPSegment segment(1, bm);
 		Record r2 = segment.lookup(tid);
