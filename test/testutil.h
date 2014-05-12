@@ -17,7 +17,6 @@ namespace testutil {
 class Timeout {
  public:
 	Timeout(uint64_t msecs) :
-	msecs(msecs),
 	maxTime(std::chrono::system_clock::now() + std::chrono::milliseconds(msecs)),
 	finished_(false), mutex() {
 		mutex.lock();
@@ -48,7 +47,6 @@ class Timeout {
 		}
 	}
 
-	uint64_t msecs;
 	std::chrono::time_point<std::chrono::system_clock> maxTime;
 	std::atomic<bool> finished_;
 	std::timed_mutex mutex;
