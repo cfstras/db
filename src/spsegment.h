@@ -10,14 +10,16 @@ namespace {
 
 // 16-bit in-page slot addresses --> 65K max page size
 
+// Structure of the Slotted Page Segment Header
 typedef struct {
 	uint64_t pageCount;
 	//TODO add freeSpaceInventory
 } SegmentHeader;
 
-#pragma pack(push) //TODO is this correct?
+#pragma pack(push)
 #pragma pack(1)
 
+// Structure of a Page Slot
 typedef struct {
 	union {
 		uint64_t tid;
@@ -42,6 +44,7 @@ typedef struct {
 
 #pragma pack(pop)
 
+// Structure of a Slotted Page Header
 typedef struct {
 	// total number of slots
 	uint16_t count;
@@ -55,6 +58,7 @@ typedef struct {
 	Slot slots[1];
 } PageHeader;
 
+// Wrapper for a single Slotted Page
 class SlottedPage {
 public:
 	/**
