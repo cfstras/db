@@ -76,13 +76,20 @@ TID SPSegment::insert(const Record& r) {
 	// find free page
 	//TODO also look for fitting spaces
 	//TODO also look for fragmented spaces
+
+	// check for maximum
+	assert(r.len() <= PAGE_SIZE-sizeof(PageHeader));
+
 	SlottedPage *page;
 	bool foundOne = false;
 	for (PageID pageID = 1; isPageInThisSegment(pageID) && !foundOne; pageID++) {
 		PageID withSeg = putSegmentInPageID(pageID);
 		page = new SlottedPage(withSeg, bufferManager_);
-		if (page->header->count*sizeof(Slot) + sizeof(PageHeader) <
-			page->header->dataStart - r.len()) {
+		// slot count (-1 b/c PageHeader has 1) * sizeof slot + sizeof PageHeader
+		// should be smaller than dataStart - new record length
+		// cast that one to signed for overflows
+		if ((page->header->count-1)*sizeof(Slot) + sizeof(PageHeader) <
+			static_cast<int64_t>(page->header->dataStart) - r.len()) {
 			foundOne = true;
 		} else {
 			//TODO page is full. compactify?
