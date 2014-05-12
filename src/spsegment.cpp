@@ -82,7 +82,8 @@ TID SPSegment::insert(const Record& r) {
 	slot.len = r.len();
 
 	page->header->slots[slotIndex] = slot;
-	memcpy(page->header + slot.offset, r.data(), slot.len);
+	memcpy(reinterpret_cast<char*>(page->header) + slot.offset,
+			r.data(), slot.len);
 
 	page->header->dataStart -= slot.len;
 	page->dirty = true;
@@ -110,7 +111,7 @@ Record SPSegment::lookup(TID t) {
 		// record is 8 bytes later
 		slot.offset += 8;
 	}
-	Record r(slot.len, reinterpret_cast<char*>(page->header + slot.offset));
+	Record r(slot.len, reinterpret_cast<char*>(page->header) + slot.offset);
 	delete page;
 	return r;
 }
