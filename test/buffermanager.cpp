@@ -102,13 +102,13 @@ TEST(BufferManagerTest, CanWaitForFreeFrame) {
 	auto &f = b.fixPage(1, false);
 	EXPECT_EQ(1, f.pageId());
 
-	thread *giveBack = new thread([] (BufferManager *b, BufferFrame *f){
+	thread *giveBack = new thread([&] (){
 		this_thread::sleep_for(chrono::milliseconds(100));
-		b->unfixPage(*f, false);
-	}, &b, &f);
+		b.unfixPage(f, false);
+	});
 
 	auto &f2 = b.fixPage(2, false);
-	EXPECT_EQ(2, f.pageId());
+	EXPECT_EQ(2, f2.pageId());
 	b.unfixPage(f2, false);
 
 	giveBack->join();
@@ -123,36 +123,60 @@ typedef struct {
 	int c;
 } Data;
 
-TEST(BufferManagerTest, Basic) {
+void basicTest(bool withUnload, bool withFileManager) {
 	srand(time(0));
-	int page = rand() % 100;
+	int page = (rand() % 100) | util::pageIDFromSegmentID(2);
 	int a = rand(), b = rand(), c = rand();
 
 	Timeout *timer = new Timeout(400);
 
-	FileManager f("test_data");
+	FileManager *fm = new FileManager("test_data");
 
-	BufferManager bm(16, &f);
+	BufferManager *bm = new BufferManager(16, fm);
 	{
-		BufferFrame &f = bm.fixPage(page, true);
+		BufferFrame &f = bm->fixPage(page, true);
 
 		Data *data = reinterpret_cast<Data*>(f.getData());
 		data->a = a; data->b = b; data->c = c;
 
-		bm.unfixPage(f, true);
-	} {
-		BufferFrame &f = bm.fixPage(page, false);
+		bm->unfixPage(f, true);
+	}
+	if (withUnload || withFileManager) {
+		delete bm;
+		if (withFileManager) {
+			delete fm;
+			fm = new FileManager("test_data");
+		}
+		bm = new BufferManager(16, fm);
+	}
+	{
+		BufferFrame &f = bm->fixPage(page, false);
 
 		Data *data = reinterpret_cast<Data*>(f.getData());
 		EXPECT_EQ(a, data->a);
 		EXPECT_EQ(b, data->b);
 		EXPECT_EQ(c, data->c);
 
-		bm.unfixPage(f, false);
+		bm->unfixPage(f, false);
 	}
+	delete bm;
+	delete fm;
 
 	timer->finished();
 	delete timer;
 }
+
+TEST(BufferManagerTest, Basic) {
+	basicTest(false, false);
+}
+
+TEST(BufferManagerTest, BasicWithUnload) {
+	basicTest(true, false);
+}
+
+TEST(BufferManagerTest, BasicWithFileUnload) {
+	basicTest(true, true);
+}
+
 
 } // namespace
