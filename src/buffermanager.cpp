@@ -91,7 +91,7 @@ void BufferManager::load(BufferFrame& frame, uint64_t pageId) {
 
 	frame.pageId_ = pageId;
 	// first two bytes are the chunk id
-	int fd = FileManager::instance()->getFile(pageId);
+	int fd = fileManager_->getFile(pageId);
 	auto bytes = pread(fd, frame.getData(), PAGE_SIZE, offset(pageId));
 	if (bytes == -1) {
 		util::checkReturn("loading page "+to_string(pageId), errno);
@@ -109,7 +109,7 @@ void BufferManager::flushNow(BufferFrame& frame) {
 		pthread_rwlock_rdlock(&frame.latch_));
 
 	auto pageId = frame.pageId();
-	int fd = FileManager::instance()->getFile(pageId);
+	int fd = fileManager_->getFile(pageId);
 
 	auto ret = posix_fallocate(fd, offset(pageId), PAGE_SIZE);
 	util::checkReturn("allocating space for page "+to_string(pageId), ret);
