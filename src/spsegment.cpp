@@ -86,7 +86,7 @@ TID SPSegment::insert(const Record& r) {
 		PageID withSeg = putSegmentInPageID(pageID);
 		page = new SlottedPage(withSeg, bufferManager_);
 		// slot count (-1 b/c PageHeader has 1) * sizeof slot + sizeof PageHeader
-		// should be smaller than dataStart - new record length
+		// should be smaller than (dataStart - record length)
 		// cast that one to signed for overflows
 		if ((page->header->count-1)*sizeof(Slot) + sizeof(PageHeader) <
 			static_cast<int64_t>(page->header->dataStart) - r.len()) {
@@ -110,14 +110,14 @@ TID SPSegment::insert(const Record& r) {
 
 	Slot slot;
 	initializeSlot(&slot);
-	slot.offset = page->header->dataStart - r.len();
+	slot.offset = page->header->dataStart - r.len(); //TODO overflow here? why?
 	slot.len = r.len();
 
 	page->header->slots[slotIndex] = slot;
 	memcpy(reinterpret_cast<char*>(page->header) + slot.offset,
 			r.data(), slot.len);
 
-	page->header->dataStart -= slot.len;
+	page->header->dataStart -= r.len();
 	page->dirty = true;
 
 	TID tid = slotIndex | (page->pageID << 4 * 4);
