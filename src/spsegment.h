@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <cassert>
 
 #include "buffermanager.h"
 #include "record.h"
@@ -8,7 +9,7 @@
 
 namespace {
 
-// 16-bit in-page slot addresses --> 65K max page size
+// 16-bit in-page slot addresses --> 64KiB max page size
 
 // Structure of the Slotted Page Segment Header
 typedef struct {
@@ -38,6 +39,7 @@ typedef struct {
 
 			uint16_t offset;
 			uint16_t len;
+			// if offset == len == 0, slot is free
 		};
 	};
 } Slot;
@@ -65,9 +67,9 @@ public:
 	 * Load a page from this segment. Upper 16 bits of pageID must be 0.
 	 */
 	SlottedPage(PageID pageID, std::shared_ptr<BufferManager> bm);
-
-	SlottedPage(SlottedPage& a) = delete;
 	~SlottedPage();
+
+	DISALLOW_COPY_AND_ASSIGN(SlottedPage);
 
 	/**
 	 * Initialize this page to a fresh, clean one.
@@ -137,6 +139,7 @@ public:
 	}
 
 	inline PageID putSegmentInPageID(PageID pageID) {
+		assert(pageID >> 12*4 == 0); // pageID should not have segment in it
 		//                                       12 nibbles
 		return (static_cast<PageID>(segment_) << 12 * 4) | pageID;
 	}
@@ -149,6 +152,18 @@ public:
 private:
 	DISALLOW_COPY_AND_ASSIGN(SPSegment);
 
+	/**
+	 * Loads and returns the page at this TID
+	 */
+	SlottedPage* getPageForTID(TID tid);
+
+	/**
+	 * Gets the slot for this TID given the loaded page
+	 */
+	Slot* getSlotForTID(SlottedPage *page, TID tid);
+
+	void initializeSlot(Slot* slot);
+
 	/** fields **/
 
 	std::shared_ptr<BufferManager> bufferManager_;
@@ -157,5 +172,4 @@ private:
 	PageID headPageID;
 	BufferFrame* headerFrame;
 	SegmentHeader* header;
-
 };
