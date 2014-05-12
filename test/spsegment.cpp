@@ -15,22 +15,23 @@ namespace {
 class SPSegmentTest : public ::testing::Test {
 protected:
 
-	SPSegmentTest() : fm("test_data") {
+	SPSegmentTest() {
 		srand(time(0));
 	}
 
 	virtual void SetUp() {
-		// create a new one
-		bm = shared_ptr<BufferManager>(new BufferManager(32, &fm));
+		fm = new FileManager("test_data");
+		bm = shared_ptr<BufferManager>(new BufferManager(32, fm));
 	}
 
 	virtual void TearDown() {
-		// blah
+		bm = nullptr;
+		delete fm; // will crash if anyone still has this shared ptr
 	}
 
-	void fillTest(uint64_t fillSize, bool unload);
+	void fillTest(uint64_t fillSize, bool unload, bool unloadBuffer, bool unloadFile);
 
-	FileManager fm;
+	FileManager *fm;
 	shared_ptr<BufferManager> bm;
 
 };
@@ -97,22 +98,62 @@ TEST_F(SPSegmentTest, UseWithUnload) {
 }
 
 TEST_F(SPSegmentTest, FillPage) {
-	fillTest(2 * PAGE_SIZE, false);
+	fillTest(2 * PAGE_SIZE, false, false, false);
+}
+
+TEST_F(SPSegmentTest, FillPages) {
+	fillTest(2 * PAGE_SIZE, false, false, false);
+	fillTest(2 * PAGE_SIZE, false, false, false);
+	fillTest(2 * PAGE_SIZE, false, false, false);
+	fillTest(2 * PAGE_SIZE, false, false, false);
 }
 
 TEST_F(SPSegmentTest, FillPageWithUnload) {
-	fillTest(2 * PAGE_SIZE, true);
+	fillTest(2 * PAGE_SIZE, true, false, false);
 }
 
-TEST_F(SPSegmentTest, Fill64Pages) {
-	fillTest(64 * PAGE_SIZE, false);
+TEST_F(SPSegmentTest, FillPageWithUnloadBuffer) {
+	fillTest(2 * PAGE_SIZE, true, true, false);
 }
 
-TEST_F(SPSegmentTest, Fill64PagesWithUnload) {
-	fillTest(64 * PAGE_SIZE, true);
+TEST_F(SPSegmentTest, FillPageWithUnloadFile) {
+	fillTest(2 * PAGE_SIZE, true, true, true);
 }
 
-void SPSegmentTest::fillTest(uint64_t fillSize, bool unload) {
+TEST_F(SPSegmentTest, Fill8Pages) {
+	fillTest(8 * PAGE_SIZE, false, false, false);
+}
+
+TEST_F(SPSegmentTest, Fill8PagesWithUnload) {
+	fillTest(8 * PAGE_SIZE, true, false, false);
+}
+
+TEST_F(SPSegmentTest, Fill8PagesWithUnloadBuffer) {
+	fillTest(8 * PAGE_SIZE, true, true, false);
+}
+
+TEST_F(SPSegmentTest, Fill8PagesWithUnloadFile) {
+	fillTest(8 * PAGE_SIZE, true, true, true);
+}
+
+TEST_F(SPSegmentTest, DISABLED_Fill64Pages) {
+	fillTest(64 * PAGE_SIZE, false, false, false);
+}
+
+TEST_F(SPSegmentTest, DISABLED_Fill64PagesWithUnload) {
+	fillTest(64 * PAGE_SIZE, true, false, false);
+}
+
+TEST_F(SPSegmentTest, DISABLED_Fill64PagesWithUnloadBuffer) {
+	fillTest(64 * PAGE_SIZE, true, true, false);
+}
+
+TEST_F(SPSegmentTest, DISABLED_Fill64PagesWithUnloadFile) {
+	fillTest(64 * PAGE_SIZE, true, true, true);
+}
+
+void SPSegmentTest::fillTest(uint64_t fillSize, bool unload, bool unloadBuffer,
+		bool unloadFile) {
 	unordered_map<TID, string> strings;
 	SPSegment *segment = new SPSegment(1, bm, true);
 	uint64_t recordSize = 64;
@@ -132,16 +173,28 @@ void SPSegmentTest::fillTest(uint64_t fillSize, bool unload) {
 		strings.insert(pair<TID, string>(tid, s));
 	}
 
-	if (unload) {
-		SetUp();
+	if (unload || unloadBuffer ||unloadFile) {
+		delete segment;
+		if (unloadBuffer) {
+			bm = nullptr;
+			if (unloadFile) {
+				delete fm;
+				fm = new FileManager("test_data");
+			}
+			bm = shared_ptr<BufferManager>(new BufferManager(32, fm));
+		}
 		segment = new SPSegment(1, bm, false);
 	}
 
 	for (pair<TID, string> t : strings) {
+#ifndef SILENT
+		cerr << "lookup "<<hex<<t.first<< ": "<<t.second<<endl;
+#endif
 		Record r = segment->lookup(t.first);
 		string s(r.data(), r.len());
 		EXPECT_EQ(t.second, s);
 	}
+	delete segment;
 }
 
 } // namespace
