@@ -56,10 +56,8 @@ SlottedPage* SPSegment::getPageForTID(TID tid) {
 
 Slot* SPSegment::getSlotForTID(SlottedPage *page, TID tid) {
 	uint16_t slotIndex = util::extractSlotIDFromTID(tid);
-	assert(page->header->count > slotIndex);
 
 	Slot* slot = &page->header->slots[slotIndex];
-	assert(slot->__padding == 0xfade); // slot was not initialized
 	return slot;
 }
 
@@ -136,6 +134,14 @@ TID SPSegment::insert(const Record& r) {
 Record SPSegment::lookup(TID tid) {
 	SlottedPage *page = getPageForTID(tid);
 	Slot slot = *getSlotForTID(page, tid); // create copy of struct!
+	SlotID slotIndex = util::extractSlotIDFromTID(tid);
+	if (page->header->count == 0 || (slot.len == 0 && slot.offset == 0)
+			|| page->header->count <= slotIndex) {
+		// slot was deleted or did not exist
+		delete page;
+		return Record(0, nullptr);
+	}
+	assert(slot.__padding == 0xfade); // slot was not initialized
 
 	if (slot.T != 255) {
 		tid = slot.tid;
@@ -155,14 +161,34 @@ Record SPSegment::lookup(TID tid) {
 bool SPSegment::remove(TID tid) {
 	SlottedPage *page = getPageForTID(tid);
 	Slot *slot = getSlotForTID(page, tid);
+	SlotID slotIndex = util::extractSlotIDFromTID(tid);
+	assert(page->header->count >= 1); // cannot delete from empty page
+
+	assert(page->header->count > slotIndex); // slot was probably removed
+	assert(slot->__padding == 0xfade); // slot was not initialized
+
 	if (slot->T != 255) {
 		// slot->tid is other record
-		// delete that one, too
+		// no data stored on this page
+		// delete the referred one, too
 		remove(slot->tid);
 	} else {
-		// ignore S, only go downwards, not upwards
-		page->header->firstFreeSlot = util::extractSlotIDFromTID(tid);
+		// ignore S, only go downwards the rabbit hole, not upwards
+		if (page->header->firstFreeSlot == slotIndex+1) { //TODO check for overflow
+			// only decrement the firstFreeSlot if this is the last one
+			page->header->firstFreeSlot = slotIndex;
+		}
+		if (slot->S != 0) {
+			// increase length for dataStart and freeSpace calculations
+			slot->len += sizeof(TID);
+		}
+		if (page->header->dataStart == slot->offset) {
+			page->header->dataStart += slot->len;
+		}
 		page->header->freeSpace += slot->len;
+	}
+	if (page->header->count-1 == slotIndex) {
+		page->header->count = slotIndex;
 	}
 	initializeSlot(slot);
 	page->dirty = true;
