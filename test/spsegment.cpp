@@ -126,6 +126,8 @@ TEST_F(SPSegmentTest, Remove) {
 }
 
 TEST_F(SPSegmentTest, RemoveTwice) {
+	::testing::FLAGS_gtest_death_test_style = "threadsafe";
+
 	SPSegment segment(1, bm, true);
 	ASSERT_EQ(1, segment.segment());
 
@@ -144,7 +146,8 @@ TEST_F(SPSegmentTest, RemoveTwice) {
 	Record r3 = segment.lookup(tid);
 	EXPECT_EQ(0, r3.len());
 
-	segment.remove(tid);
+	ASSERT_DEATH(segment.remove(tid), ".*Assertion.*failed.*"); // fork and assert a death
+
 	Record r4 = segment.lookup(tid);
 	EXPECT_EQ(0, r4.len());
 }
