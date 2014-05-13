@@ -87,9 +87,12 @@ TID SPSegment::insert(const Record& r) {
 		page = new SlottedPage(withSeg, bufferManager_);
 		// slot count (-1 b/c PageHeader has 1) * sizeof slot + sizeof PageHeader
 		// should be smaller than (dataStart - record length)
-		// cast that one to signed for overflows
-		if ((page->header->count-1)*sizeof(Slot) + sizeof(PageHeader) <
-			static_cast<int64_t>(page->header->dataStart) - r.len()) {
+		uint16_t freeSpaceAtStart = page->header->dataStart -
+				(page->header->count-1)*sizeof(Slot);
+
+		assert(freeSpaceAtStart <= page->header->freeSpace);
+
+		if (freeSpaceAtStart >= r.len()) {
 			foundOne = true;
 		} else {
 			//TODO page is full. compactify?
@@ -104,9 +107,14 @@ TID SPSegment::insert(const Record& r) {
 		page->init();
 	}
 
+	assert(page->header->dataStart > r.len()); // for additional safety
+	assert(page->header->freeSpace >= r.len());
 	uint16_t slotIndex = page->header->firstFreeSlot++;
 	page->header->count++;
 	page->header->freeSpace -= r.len();
+	if (slotIndex != 0) { // slot index 0 has it's size in the header
+		page->header->freeSpace -= sizeof(Slot);
+	}
 
 	Slot slot;
 	initializeSlot(&slot);
