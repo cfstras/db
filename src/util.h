@@ -15,6 +15,7 @@
 typedef uint64_t TID;
 typedef uint64_t PageID;
 typedef uint16_t SegmentID;
+typedef uint16_t SlotID;
 
 namespace util {
 
@@ -37,7 +38,7 @@ inline static PageID pageIDFromSegmentID(SegmentID segment) {
 	return static_cast<PageID>(segment) << 12 * 4;
 }
 
-inline static SegmentID extractSlotIDFromTID(TID tid) {
+inline static SlotID extractSlotIDFromTID(TID tid) {
 	return (tid & 0x000000000000ffffULL);
 }
 
