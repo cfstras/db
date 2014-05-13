@@ -65,7 +65,7 @@ TEST_F(SPSegmentTest, Use) {
 	SPSegment segment(1, bm, true);
 	ASSERT_EQ(1, segment.segment());
 
-	string s(randChar(), 1);
+	string s(1, randChar());
 
 	string s2(s);
 	Record r(s2.length(), s2.c_str());
@@ -78,7 +78,7 @@ TEST_F(SPSegmentTest, Use) {
 }
 
 TEST_F(SPSegmentTest, UseWithUnload) {
-	string s(randChar(), 1);
+	string s(1, randChar());
 
 	TID tid;
 
@@ -109,7 +109,7 @@ TEST_F(SPSegmentTest, Remove) {
 	SPSegment segment(1, bm, true);
 	ASSERT_EQ(1, segment.segment());
 
-	string s(randChar(), 1);
+	string s(1, randChar());
 
 	string s2(s);
 	Record r(s2.length(), s2.c_str());
@@ -129,7 +129,7 @@ TEST_F(SPSegmentTest, RemoveTwice) {
 	SPSegment segment(1, bm, true);
 	ASSERT_EQ(1, segment.segment());
 
-	string s(randChar(), 1);
+	string s(1, randChar());
 
 	string s2(s);
 	Record r(s2.length(), s2.c_str());
