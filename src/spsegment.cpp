@@ -30,9 +30,9 @@ SPSegment::~SPSegment() {
 	bufferManager_->unfixPage(*headerFrame, true);
 }
 
-SlottedPage::SlottedPage(PageID pageID, shared_ptr<BufferManager> bm) :
+SlottedPage::SlottedPage(PageID pageID, shared_ptr<BufferManager> bm, bool exclusive) :
 		bufferManager_(bm), dirty(false), pageID(pageID) {
-	frame = &bufferManager_->fixPage(pageID, true);
+	frame = &bufferManager_->fixPage(pageID, exclusive);
 	header = reinterpret_cast<PageHeader*>(frame->getData());
 	// TODO integrity check?
 }
@@ -48,15 +48,14 @@ void SlottedPage::init() {
 	header->freeSpace = PAGE_SIZE - sizeof(PageHeader);
 }
 
-SlottedPage* SPSegment::getPageForTID(TID tid) {
+SlottedPage* SPSegment::getPageForTID(TID tid, bool exclusive) {
 	PageID pageID = util::extractPageIDFromTID(tid);
 	pageID = putSegmentInPageID(pageID);
-	return new SlottedPage(pageID, bufferManager_);
+	return new SlottedPage(pageID, bufferManager_, exclusive);
 }
 
 Slot* SPSegment::getSlotForTID(SlottedPage *page, TID tid) {
 	uint16_t slotIndex = util::extractSlotIDFromTID(tid);
-
 	Slot* slot = &page->header->slots[slotIndex];
 	return slot;
 }
@@ -74,6 +73,7 @@ TID SPSegment::insert(const Record& r) {
 	// find free page
 	//TODO also look for fitting spaces
 	//TODO also look for fragmented spaces
+	//TODO implement FSI
 
 	// check for maximum
 	assert(r.len() <= PAGE_SIZE-sizeof(PageHeader));
@@ -82,7 +82,7 @@ TID SPSegment::insert(const Record& r) {
 	bool foundOne = false;
 	for (PageID pageID = 1; isPageInThisSegment(pageID) && !foundOne; pageID++) {
 		PageID withSeg = putSegmentInPageID(pageID);
-		page = new SlottedPage(withSeg, bufferManager_);
+		page = new SlottedPage(withSeg, bufferManager_, true);
 		// slot count (-1 b/c PageHeader has 1) * sizeof slot + sizeof PageHeader
 		// should be smaller than (dataStart - record length)
 		uint16_t freeSpaceAtStart = page->header->dataStart -
@@ -101,7 +101,7 @@ TID SPSegment::insert(const Record& r) {
 	if (!foundOne) {
 		PageID pageID = ++header->pageCount;
 		PageID withSeg = putSegmentInPageID(pageID);
-		page = new SlottedPage(withSeg, bufferManager_);
+		page = new SlottedPage(withSeg, bufferManager_, true);
 		page->init();
 	}
 
@@ -132,7 +132,7 @@ TID SPSegment::insert(const Record& r) {
 }
 
 Record SPSegment::lookup(TID tid) {
-	SlottedPage *page = getPageForTID(tid);
+	SlottedPage *page = getPageForTID(tid, false);
 	Slot slot = *getSlotForTID(page, tid); // create copy of struct!
 	SlotID slotIndex = util::extractSlotIDFromTID(tid);
 	if (page->header->count == 0 || (slot.len == 0 && slot.offset == 0)
@@ -159,7 +159,7 @@ Record SPSegment::lookup(TID tid) {
 }
 
 bool SPSegment::remove(TID tid) {
-	SlottedPage *page = getPageForTID(tid);
+	SlottedPage *page = getPageForTID(tid, true);
 	Slot *slot = getSlotForTID(page, tid);
 	SlotID slotIndex = util::extractSlotIDFromTID(tid);
 	assert(page->header->count >= 1); // cannot delete from empty page

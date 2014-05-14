@@ -12,10 +12,21 @@ namespace {
 // 16-bit in-page slot addresses --> 64KiB max page size
 
 // Structure of the Slotted Page Segment Header
-typedef struct {
+struct SegmentHeader {
 	uint64_t pageCount;
 	//TODO add freeSpaceInventory
-} SegmentHeader;
+};
+
+// * 2 because 4 bits per FSI entry --> 2 entries per byte
+//uint64_t numPagesPerFSI = (PAGE_SIZE - sizeof(SegmentHeader)) * 2;
+// one entry is one nibble
+//uint64_t numEntriesInFSI = numPagesPerFSI / 2;
+
+// every (numPagesPerFSI+1)th page is an FSI page.
+
+struct FSI : SegmentHeader {
+	uint8_t spaces[];
+};
 
 #pragma pack(push)
 #pragma pack(1)
@@ -66,7 +77,7 @@ public:
 	/**
 	 * Load a page from this segment. Upper 16 bits of pageID must be 0.
 	 */
-	SlottedPage(PageID pageID, std::shared_ptr<BufferManager> bm);
+	SlottedPage(PageID pageID, std::shared_ptr<BufferManager> bm, bool exclusive);
 	~SlottedPage();
 
 	DISALLOW_COPY_AND_ASSIGN(SlottedPage);
@@ -155,7 +166,7 @@ private:
 	/**
 	 * Loads and returns the page at this TID
 	 */
-	SlottedPage* getPageForTID(TID tid);
+	SlottedPage* getPageForTID(TID tid, bool exclusive);
 
 	/**
 	 * Gets the slot for this TID given the loaded page
