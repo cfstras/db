@@ -76,21 +76,21 @@ TID SPSegment::insert(const Record& r) {
 	//TODO implement FSI
 
 	// check for maximum
-	assert(r.len() <= PAGE_SIZE-sizeof(PageHeader));
+	assert(r.len() <= PAGE_SIZE - sizeof(PageHeader) - sizeof(Slot));
 
 	SlottedPage *page;
 	bool foundOne = false;
 	for (PageID pageID = 1; isPageInThisSegment(pageID) && !foundOne; pageID++) {
 		PageID withSeg = putSegmentInPageID(pageID);
 		page = new SlottedPage(withSeg, bufferManager_, true);
-		// slot count (-1 b/c PageHeader has 1) * sizeof slot + sizeof PageHeader
+		// slot count * sizeof slot + sizeof PageHeader
 		// should be smaller than (dataStart - record length)
 		uint16_t freeSpaceAtStart = page->header->dataStart -
-				(page->header->count-1)*sizeof(Slot) - sizeof(PageHeader);
+				page->header->count*sizeof(Slot) - sizeof(PageHeader);
 
 		assert(freeSpaceAtStart <= page->header->freeSpace);
 
-		if (freeSpaceAtStart >= r.len()) {
+		if (freeSpaceAtStart >= r.len() + sizeof(Slot)) {
 			foundOne = true;
 		} else {
 			//TODO page is full. compactify?
@@ -105,18 +105,14 @@ TID SPSegment::insert(const Record& r) {
 		page->init();
 	}
 
-	assert(page->header->dataStart > r.len()); // for additional safety
-	assert(page->header->freeSpace >= r.len());
+	assert(page->header->freeSpace >= r.len() + sizeof(Slot));
 	uint16_t slotIndex = page->header->firstFreeSlot++;
 	page->header->count++;
-	page->header->freeSpace -= r.len();
-	if (slotIndex != 0) { // slot index 0 has it's size in the header
-		page->header->freeSpace -= sizeof(Slot);
-	}
+	page->header->freeSpace -= r.len() + sizeof(Slot);
 
 	Slot slot;
 	initializeSlot(&slot);
-	slot.offset = page->header->dataStart - r.len(); //TODO overflow here? why?
+	slot.offset = page->header->dataStart - r.len();
 	slot.len = r.len();
 
 	page->header->slots[slotIndex] = slot;
@@ -174,7 +170,7 @@ bool SPSegment::remove(TID tid) {
 		remove(slot->tid);
 	} else {
 		// ignore S, only go downwards the rabbit hole, not upwards
-		if (page->header->firstFreeSlot == slotIndex+1) { //TODO check for overflow
+		if (page->header->firstFreeSlot-1 == slotIndex) {
 			// only decrement the firstFreeSlot if this is the last one
 			page->header->firstFreeSlot = slotIndex;
 		}

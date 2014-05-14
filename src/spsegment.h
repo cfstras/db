@@ -68,7 +68,7 @@ typedef struct {
 	// space that would be available after compacting
 	uint16_t freeSpace;
 	// pointer to the slots. length is count.
-	Slot slots[1];
+	Slot slots[0];
 } PageHeader;
 
 // Wrapper for a single Slotted Page
