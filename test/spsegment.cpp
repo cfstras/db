@@ -192,20 +192,20 @@ TEST_F(SPSegmentTest, Fill8PagesWithUnloadFile) {
 	fillTest(8 * PAGE_SIZE, true, true, true);
 }
 
-TEST_F(SPSegmentTest, DISABLED_Fill64Pages) {
-	fillTest(64 * PAGE_SIZE, false, false, false);
+TEST_F(SPSegmentTest, FillManyPages) {
+	fillTest(32 * PAGE_SIZE, false, false, false);
 }
 
-TEST_F(SPSegmentTest, DISABLED_Fill64PagesWithUnload) {
-	fillTest(64 * PAGE_SIZE, true, false, false);
+TEST_F(SPSegmentTest, FillManyPagesWithUnload) {
+	fillTest(32 * PAGE_SIZE, true, false, false);
 }
 
-TEST_F(SPSegmentTest, DISABLED_Fill64PagesWithUnloadBuffer) {
-	fillTest(64 * PAGE_SIZE, true, true, false);
+TEST_F(SPSegmentTest, FillManyPagesWithUnloadBuffer) {
+	fillTest(32 * PAGE_SIZE, true, true, false);
 }
 
-TEST_F(SPSegmentTest, DISABLED_Fill64PagesWithUnloadFile) {
-	fillTest(64 * PAGE_SIZE, true, true, true);
+TEST_F(SPSegmentTest, FillManyPagesWithUnloadFile) {
+	fillTest(32 * PAGE_SIZE, true, true, true);
 }
 
 void SPSegmentTest::fillTest(uint64_t fillSize, bool unload, bool unloadBuffer,
