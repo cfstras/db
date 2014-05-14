@@ -21,7 +21,7 @@ protected:
 
 	virtual void SetUp() {
 		fm = new FileManager("test_data");
-		bm = shared_ptr<BufferManager>(new BufferManager(32, fm));
+		bm = shared_ptr<BufferManager>(new BufferManager(64, fm));
 	}
 
 	virtual void TearDown() {
