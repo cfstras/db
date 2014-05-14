@@ -176,7 +176,9 @@ bool BufferManager::tryFreeingPage(unique_lock<mutex> &lock) {
 	util::checkReturn("unlocking frame for free",
 		pthread_rwlock_unlock(&frame->latch_));
 
-	flushNow(*frame);
+	if (frame->dirty()) {
+		flushNow(*frame);
+	}
 	delete frame;
 
 	lock.lock();
