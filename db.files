@@ -40,3 +40,14 @@ src/spsegment.cpp
 src/spsegment.h
 src/util.cpp
 src/util.h
+test/buffermanager.cpp
+test/buffertest.cpp
+test/dummy.cpp
+test/filemanager.cpp
+test/main.cpp
+test/slottedtest.cpp
+test/sort.cpp
+test/spsegment.cpp
+test/testutil.cpp
+test/testutil.h
+test/utiltest.cpp
