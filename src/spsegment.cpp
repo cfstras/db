@@ -86,7 +86,7 @@ TID SPSegment::insert(const Record& r) {
 		// slot count (-1 b/c PageHeader has 1) * sizeof slot + sizeof PageHeader
 		// should be smaller than (dataStart - record length)
 		uint16_t freeSpaceAtStart = page->header->dataStart -
-				(page->header->count-1)*sizeof(Slot);
+				(page->header->count-1)*sizeof(Slot) - sizeof(PageHeader);
 
 		assert(freeSpaceAtStart <= page->header->freeSpace);
 
