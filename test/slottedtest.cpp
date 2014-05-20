@@ -69,7 +69,9 @@ int test(const unsigned pageSize) {
 		TID tid = sp.insert(Record(s.size(), s.c_str()));
 		EXPECT_EQ(values.end(), values.find(tid)) << "TIDs should not be overwritten";
 		values[tid]=r;
-		unsigned pageId = util::extractPageIDFromTID(tid); // extract the pageId from the TID
+		// extract the pageId from the TID
+		// PageIDs start at 1
+		unsigned pageId = util::extractPageIDFromTID(tid) - 1;
 		EXPECT_LT(pageId, initialSize) << "pageId should be within [0, initialSize)";
 		usage[pageId]+=s.size();
 	}
@@ -81,7 +83,7 @@ int test(const unsigned pageSize) {
 
 		// Select victim
 		TID tid = values.begin()->first;
-		unsigned pageId = util::extractPageIDFromTID(tid);
+		unsigned pageId = util::extractPageIDFromTID(tid)-1;
 		const std::string& value = testData[(values.begin()->second)%testData.size()];
 		unsigned len = value.size();
 
@@ -124,7 +126,7 @@ int test(const unsigned pageSize) {
 	return 0;
 }
 
-TEST(SlottedTest, DISABLED_SlottedTest) {
+TEST(SlottedTest, SlottedTest) {
 	test(PAGE_SIZE);
 }
 

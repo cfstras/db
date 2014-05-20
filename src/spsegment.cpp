@@ -1,5 +1,6 @@
 #include "spsegment.h"
 
+#include <iostream>
 #include <cstring>
 #include <cassert>
 
@@ -80,12 +81,14 @@ TID SPSegment::insert(const Record& r) {
 
 	SlottedPage *page;
 	bool foundOne = false;
-	for (PageID pageID = 1; isPageInThisSegment(pageID) && !foundOne; pageID++) {
-		PageID withSeg = putSegmentInPageID(pageID);
+	PageID pageID, withSeg;
+	uint16_t freeSpaceAtStart;
+	for (pageID = 1; isPageInThisSegment(pageID) && !foundOne; pageID++) {
+		withSeg = putSegmentInPageID(pageID);
 		page = new SlottedPage(withSeg, bufferManager_, true);
 		// slot count * sizeof slot + sizeof PageHeader
 		// should be smaller than (dataStart - record length)
-		uint16_t freeSpaceAtStart = page->header->dataStart -
+		freeSpaceAtStart = page->header->dataStart -
 				page->header->count*sizeof(Slot) - sizeof(PageHeader);
 
 		assert(freeSpaceAtStart <= page->header->freeSpace);
@@ -99,10 +102,20 @@ TID SPSegment::insert(const Record& r) {
 		}
 	}
 	if (!foundOne) {
-		PageID pageID = ++header->pageCount;
-		PageID withSeg = putSegmentInPageID(pageID);
+		pageID = ++header->pageCount;
+		withSeg = putSegmentInPageID(pageID);
+#ifndef SILENT
+		cerr << "ins: create p " << hex << withSeg << dec << " for l="
+				<< (r.len() + sizeof(Slot)) << endl;
+#endif
 		page = new SlottedPage(withSeg, bufferManager_, true);
 		page->init();
+	} else {
+#ifndef SILENT
+		cerr << "ins: use    p " << hex << withSeg << dec << " for l="
+				<< (r.len() + sizeof(Slot)) << ", has " << freeSpaceAtStart
+				<< " left" << endl;
+#endif
 	}
 
 	assert(page->header->freeSpace >= r.len() + sizeof(Slot));
