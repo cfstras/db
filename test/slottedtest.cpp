@@ -57,7 +57,9 @@ int test(const unsigned pageSize) {
 		// Check that there is space available for 's'
 		bool full = true;
 		for (unsigned p=0; p<initialSize; ++p) {
-			if (usage[p] < loadFactor*pageSize) {
+			if (loadFactor*pageSize - usage[p] > s.size()) {
+				cerr << "in page " << hex << (p+1) << dec << " expecting "
+						<< (loadFactor*pageSize - usage[p]) << endl;
 				full = false;
 				break;
 			}
