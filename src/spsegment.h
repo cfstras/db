@@ -71,32 +71,6 @@ typedef struct {
 	Slot slots[0];
 } PageHeader;
 
-// Wrapper for a single Slotted Page
-class SlottedPage {
-public:
-	/**
-	 * Load a page from this segment. Upper 16 bits of pageID must be 0.
-	 */
-	SlottedPage(PageID pageID, std::shared_ptr<BufferManager> bm, bool exclusive);
-	~SlottedPage();
-
-	DISALLOW_COPY_AND_ASSIGN(SlottedPage);
-
-	/**
-	 * Initialize this page to a fresh, clean one.
-	 */
-	void init();
-
-	std::shared_ptr<BufferManager> bufferManager_;
-
-	BufferFrame* frame;
-	PageHeader* header;
-	bool dirty;
-
-	// the page ID, with segment id inside
-	PageID pageID;
-};
-
 } // namespace
 
 class SPSegment {
@@ -163,15 +137,19 @@ public:
 private:
 	DISALLOW_COPY_AND_ASSIGN(SPSegment);
 
+	BufferFrame* loadPage(PageID pageID, bool exclusive);
+	void unloadPage(BufferFrame *frame, bool dirty);
+	void initPage(PageHeader *header);
+
 	/**
 	 * Loads and returns the page at this TID
 	 */
-	SlottedPage* getPageForTID(TID tid, bool exclusive);
+	BufferFrame* getPageForTID(TID tid, bool exclusive);
 
 	/**
 	 * Gets the slot for this TID given the loaded page
 	 */
-	Slot* getSlotForTID(SlottedPage *page, TID tid);
+	Slot* getSlotForTID(PageHeader *page, TID tid);
 
 	void initializeSlot(Slot* slot);
 

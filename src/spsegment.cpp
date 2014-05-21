@@ -31,33 +31,32 @@ SPSegment::~SPSegment() {
 	bufferManager_->unfixPage(*headerFrame, true);
 }
 
-SlottedPage::SlottedPage(PageID pageID, shared_ptr<BufferManager> bm, bool exclusive) :
-		bufferManager_(bm), dirty(false), pageID(pageID) {
-	frame = &bufferManager_->fixPage(pageID, exclusive);
-	header = reinterpret_cast<PageHeader*>(frame->getData());
+BufferFrame* SPSegment::loadPage(PageID pageID, bool exclusive) {
+	BufferFrame *frame = &bufferManager_->fixPage(pageID, exclusive);
+	return frame;
 	// TODO integrity check?
 }
 
-SlottedPage::~SlottedPage() {
+void SPSegment::unloadPage(BufferFrame *frame, bool dirty) {
 	//TODO clean things up?
 	bufferManager_->unfixPage(*frame, dirty);
 }
 
-void SlottedPage::init() {
+void SPSegment::initPage(PageHeader *header) {
 	memset(header, 0, sizeof(PageHeader));
 	header->dataStart = PAGE_SIZE;
 	header->freeSpace = PAGE_SIZE - sizeof(PageHeader);
 }
 
-SlottedPage* SPSegment::getPageForTID(TID tid, bool exclusive) {
+BufferFrame* SPSegment::getPageForTID(TID tid, bool exclusive) {
 	PageID pageID = util::extractPageIDFromTID(tid);
 	pageID = putSegmentInPageID(pageID);
-	return new SlottedPage(pageID, bufferManager_, exclusive);
+	return loadPage(pageID, exclusive);
 }
 
-Slot* SPSegment::getSlotForTID(SlottedPage *page, TID tid) {
+Slot* SPSegment::getSlotForTID(PageHeader* page, TID tid) {
 	uint16_t slotIndex = util::extractSlotIDFromTID(tid);
-	Slot* slot = &page->header->slots[slotIndex];
+	Slot* slot = &page->slots[slotIndex];
 	return slot;
 }
 
@@ -79,26 +78,29 @@ TID SPSegment::insert(const Record& r) {
 	// check for maximum
 	assert(r.len() <= PAGE_SIZE - sizeof(PageHeader) - sizeof(Slot));
 
-	SlottedPage *page;
+	BufferFrame *frame;
+	PageHeader *page;
 	bool foundOne = false;
 	PageID pageID, withSeg;
 	uint16_t freeSpaceAtStart;
-	for (pageID = 1; isPageInThisSegment(pageID) && !foundOne; pageID++) {
+	for (pageID = 1; isPageInThisSegment(pageID); pageID++) {
 		withSeg = putSegmentInPageID(pageID);
-		page = new SlottedPage(withSeg, bufferManager_, true);
+		frame = loadPage(withSeg, true);
+		page = (PageHeader*)frame->getData();
 		// slot count * sizeof slot + sizeof PageHeader
 		// should be smaller than (dataStart - record length)
-		freeSpaceAtStart = page->header->dataStart -
-				page->header->count*sizeof(Slot) - sizeof(PageHeader);
+		freeSpaceAtStart = page->dataStart -
+				page->count*sizeof(Slot) - sizeof(PageHeader);
 
-		assert(freeSpaceAtStart <= page->header->freeSpace);
+		assert(freeSpaceAtStart <= page->freeSpace);
 
 		if (freeSpaceAtStart >= r.len() + sizeof(Slot)) {
 			foundOne = true;
+			break;
 		} else {
 			//TODO page is full. compactify?
-			delete page;
-			page = nullptr;
+			unloadPage(frame, false);
+			page = nullptr; frame = nullptr;
 		}
 	}
 	if (!foundOne) {
@@ -108,8 +110,9 @@ TID SPSegment::insert(const Record& r) {
 		cerr << "ins: create p " << hex << withSeg << dec << " for l="
 				<< (r.len() + sizeof(Slot)) << endl;
 #endif
-		page = new SlottedPage(withSeg, bufferManager_, true);
-		page->init();
+		frame = loadPage(withSeg, true);
+		page = (PageHeader*)frame->getData();
+		initPage(page);
 	} else {
 #ifndef SILENT
 		cerr << "ins: use    p " << hex << withSeg << dec << " for l="
@@ -118,90 +121,95 @@ TID SPSegment::insert(const Record& r) {
 #endif
 	}
 
-	assert(page->header->freeSpace >= r.len() + sizeof(Slot));
-	uint16_t slotIndex = page->header->firstFreeSlot++;
-	page->header->count++;
-	page->header->freeSpace -= r.len() + sizeof(Slot);
+	assert(page->freeSpace >= r.len() + sizeof(Slot));
+	uint16_t slotIndex = page->firstFreeSlot++;
+	page->count++;
+	page->freeSpace -= r.len() + sizeof(Slot);
 
 	Slot slot;
 	initializeSlot(&slot);
-	slot.offset = page->header->dataStart - r.len();
+	slot.offset = page->dataStart - r.len();
 	slot.len = r.len();
 
-	page->header->slots[slotIndex] = slot;
-	memcpy(reinterpret_cast<char*>(page->header) + slot.offset,
+	page->slots[slotIndex] = slot;
+	memcpy(reinterpret_cast<char*>(page) + slot.offset,
 			r.data(), slot.len);
 
-	page->header->dataStart -= r.len();
-	page->dirty = true;
+	page->dataStart -= r.len();
 
-	TID tid = slotIndex | (page->pageID << 4 * 4);
-	delete page;
+	TID tid = slotIndex | (pageID << 4 * 4);
+	unloadPage(frame, true);
 	return tid;
 }
 
 Record SPSegment::lookup(TID tid) {
-	SlottedPage *page = getPageForTID(tid, false);
-	Slot slot = *getSlotForTID(page, tid); // create copy of struct!
+	BufferFrame *frame = getPageForTID(tid, false);
+	PageHeader *header = (PageHeader*)frame->getData();
+	Slot slot = *getSlotForTID(header, tid); // create copy of struct!
 	SlotID slotIndex = util::extractSlotIDFromTID(tid);
-	if (page->header->count == 0 || (slot.len == 0 && slot.offset == 0)
-			|| page->header->count <= slotIndex) {
+	if (header->count == 0 || (slot.len == 0 && slot.offset == 0)
+			|| header->count <= slotIndex) {
 		// slot was deleted or did not exist
-		delete page;
+		unloadPage(frame, false);
 		return Record(0, nullptr);
 	}
 	assert(slot.__padding == 0xfade); // slot was not initialized
 
 	if (slot.T != 255) {
 		tid = slot.tid;
-		delete page;
+		unloadPage(frame, false);
 		return lookup(tid); //TODO add counter to prevent recursion
 	}
 	if (slot.S != 0) {
-		// original TID is at page->header + offset
+		// original TID is at header + offset
 		// record is 8 bytes later
 		slot.offset += 8;
 	}
-	Record r(slot.len, reinterpret_cast<char*>(page->header) + slot.offset);
-	delete page;
+	Record r(slot.len, reinterpret_cast<char*>(header) + slot.offset);
+	unloadPage(frame, false);
 	return r;
 }
 
 bool SPSegment::remove(TID tid) {
-	SlottedPage *page = getPageForTID(tid, true);
-	Slot *slot = getSlotForTID(page, tid);
+	BufferFrame *frame = getPageForTID(tid, true);
+	PageHeader *header = (PageHeader*)frame->getData();
+	Slot *slot = getSlotForTID(header, tid);
 	SlotID slotIndex = util::extractSlotIDFromTID(tid);
-	assert(page->header->count >= 1); // cannot delete from empty page
+	TID newTID = 0;
 
-	assert(page->header->count > slotIndex); // slot was probably removed
+	assert(header->count >= 1); // cannot delete from empty page
+	assert(header->count > slotIndex); // slot was probably removed
 	assert(slot->__padding == 0xfade); // slot was not initialized
 
 	if (slot->T != 255) {
 		// slot->tid is other record
 		// no data stored on this page
 		// delete the referred one, too
-		remove(slot->tid);
+		newTID = slot->tid;
 	} else {
 		// ignore S, only go downwards the rabbit hole, not upwards
-		if (page->header->firstFreeSlot-1 == slotIndex) {
+		if (header->firstFreeSlot-1 == slotIndex) {
 			// only decrement the firstFreeSlot if this is the last one
-			page->header->firstFreeSlot = slotIndex;
+			header->firstFreeSlot = slotIndex;
 		}
 		if (slot->S != 0) {
 			// increase length for dataStart and freeSpace calculations
 			slot->len += sizeof(TID);
 		}
-		if (page->header->dataStart == slot->offset) {
-			page->header->dataStart += slot->len;
+		if (header->dataStart == slot->offset) {
+			header->dataStart += slot->len;
 		}
-		page->header->freeSpace += slot->len;
+		header->freeSpace += slot->len;
 	}
-	if (page->header->count-1 == slotIndex) {
-		page->header->count = slotIndex;
+	if (header->count-1 == slotIndex) {
+		header->count = slotIndex;
 	}
 	initializeSlot(slot);
-	page->dirty = true;
-	delete page;
+	unloadPage(frame, true);
+
+	if (newTID != 0) {
+		remove(newTID);
+	}
 	return true;
 }
 
