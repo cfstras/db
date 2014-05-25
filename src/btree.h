@@ -69,14 +69,19 @@ struct BTreePage {
 
 } // namespace
 
-template <class T, class CMP>
+template <typename T, typename CMP>
 class BTree {
-
+public:
 	/**
 	 * Creates a B-Tree object in this segment. Before first usage, it should
 	 * be initialized with init().
 	 */
 	BTree(SegmentID segment, std::shared_ptr<BufferManager> bufferManager);
+
+	/**
+	 * Unloads a B-Tree.
+	 */
+	~BTree();
 
 	/**
 	 * Initialize this B-Tree. All data in this segment will be lost.
@@ -113,8 +118,13 @@ private:
 	 */
 	std::pair<PageID, std::vector<BufferFrame>> lookupPage(T key, bool keepLocks);
 
+	/** fields **/
+
 	std::shared_ptr<BufferManager> bufferManager_;
 
 	SegmentID segment_;
 	PageID headPageID;
 };
+
+// hax hax
+#include "btree.cpp.h"
