@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "util.h"
 #include "buffermanager.h"
@@ -25,7 +26,7 @@ struct BTreeKP {
 template <class T>
 struct BTreeNode {
 	PageID upperPage;
-	SlotID count;
+	uint64_t count;
 	BTreeKP<T> children[0];
 };
 
@@ -44,18 +45,20 @@ struct BTreeKV {
 template <class T>
 struct BTreeLeaf {
 	PageID nextPage;
-	SlotID count;
+	uint16_t count;
+	//TODO test if padding here improves performance
 	BTreeKV<T> children[0];
 };
 
 /**
  * Describes a B-Tree page.
- * if isLeaf is true, _only_ the leaf field is to be used,
- * if isLeaf is false, _only_ the node field is to be used.
+ * If isLeaf is true, _only_ the leaf field is to be used,
+ * If isLeaf is false, _only_ the node field is to be used.
  */
 template <class T>
 struct BTreePage {
 	bool isLeaf;
+	//TODO test if padding here improves performance
 	union {
 		BTreeNode<T> node;
 		BTreeLeaf<T> leaf;
@@ -101,9 +104,17 @@ class BTree {
 private:
 	DISALLOW_COPY_AND_ASSIGN(BTree);
 
+	/**
+	 * Looks up the page where this key would go.
+	 * @param keepLocks whether to hold the locks. If true, the corresponding
+	 *        BufferFrame objects are passed along and valid. If false,
+	 *        lock-coupling is used and any returned BufferFrames are invalid.
+	 * @return a pair of the would-be PageID and a vector of BufferFrames
+	 */
+	std::pair<PageID, std::vector<BufferFrame>> lookupPage(T key, bool keepLocks);
+
 	std::shared_ptr<BufferManager> bufferManager_;
 
 	SegmentID segment_;
 	PageID headPageID;
-	BufferFrame* headerFrame;
 };
