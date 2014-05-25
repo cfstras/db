@@ -34,4 +34,10 @@ TEST_F(BTreeTest, Construct) {
 	BTree<uint64_t, UInt64Comp> tree(4, bm);
 }
 
+TEST_F(BTreeTest, Init) {
+	BTree<uint64_t, UInt64Comp> tree(4, bm);
+	tree.init();
+}
+
+
 } // namespace

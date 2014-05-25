@@ -109,6 +109,16 @@ public:
 private:
 	DISALLOW_COPY_AND_ASSIGN(BTree);
 
+	inline PageID putSegmentInPageID(PageID pageID) {
+		assert(pageID >> 12*4 == 0); // pageID should not have segment in it
+		//                                       12 nibbles
+		return (static_cast<PageID>(segment_) << 12 * 4) | pageID;
+	}
+
+	BufferFrame *loadPage(PageID pageID, bool exclusive);
+
+	void unloadPage(BufferFrame *frame, bool dirty);
+
 	/**
 	 * Looks up the page where this key would go.
 	 * @param keepLocks whether to hold the locks. If true, the corresponding
