@@ -27,7 +27,7 @@ struct BTreeKP {
 template <class T>
 struct BTreeNode {
 	PageID upperPage;
-	uint64_t size;
+	//uint64_t size;
 	//TODO test if padding here improves performance
 	BTreeKP<T> children[0];
 };

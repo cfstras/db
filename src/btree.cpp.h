@@ -38,7 +38,7 @@ void BTree<T, CMP>::init() {
 
 	headPage->isLeaf = false;
 	BTreeNode<T> *headNode = &headPage->node;
-	headNode->upperPage = 0;
+	headNode->upperPage = -1;
 	headPage->count = 0;
 
 	unloadPage(headFrame, true);
@@ -65,6 +65,9 @@ tuple<PageID, vector<BufferFrame*>, bool> BTree<T, CMP>::lookupPage(T key, bool 
 		BTreeNode<T> *node = &page->node;
 		PageID candidate = node->upperPage;
 
+		if (page->count == 0) {
+			break;
+		}
 		for (uint16_t i = 0; i < page->count; i++) {
 			BTreeKP<T> *child = &node->children[i];
 			if (cmp(key, child->lowestKey)) {
@@ -76,8 +79,9 @@ tuple<PageID, vector<BufferFrame*>, bool> BTree<T, CMP>::lookupPage(T key, bool 
 			}
 		}
 		BufferFrame *lastFrame = frame;
-		if (candidate == 0) { //TODO insert head pageID here
-			//TODO
+		if (candidate == 0 || candidate == -1) { //TODO insert head pageID here
+			pageID = -1;
+			break;
 		}
 		// load the next page
 		pageID = candidate;
@@ -104,12 +108,27 @@ TID BTree<T, CMP>::insert(T key, TID tid) {
 	bool leafFull = get<2>(ret);
 	CMP cmp;
 
+	assert(pageID != -1);
 	if (leafFull) {
 		assert(false); //TODO implement
 	}
 	BufferFrame *frame = loadPage(pageID, true);
 	BTreePage<T> *page = (BTreePage<T>*) frame->getData();
-	assert(page->isLeaf); // lookupPage should always return a leaf.
+	if (!page->isLeaf) { // page is empty, add leaf
+		BTreeNode<T> *node = &page->node;
+		PageID newPage = pageID+1; //TODO find out next pageID
+		node->upperPage = newPage;
+		node->children[0].page = 0; //TODO ???
+		node->children[9].lowestKey = key;
+		page->count = 1;
+
+		unloadPage(frame, true);
+		frame = loadPage(newPage, true);
+		page = (BTreePage<T>*) frame->getData();
+		page->isLeaf = true;
+		page->count = 0;
+		page->leaf.nextPage = 0;
+	}
 	BTreeLeaf<T> *leaf = &page->leaf;
 	TID oldTID = 0;
 
