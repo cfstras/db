@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <tuple>
 
 #include "util.h"
 #include "buffermanager.h"
@@ -27,7 +28,6 @@ template <class T>
 struct BTreeNode {
 	PageID upperPage;
 	uint64_t size;
-	uint16_t count;
 	//TODO test if padding here improves performance
 	BTreeKP<T> children[0];
 };
@@ -47,7 +47,6 @@ struct BTreeKV {
 template <class T>
 struct BTreeLeaf {
 	PageID nextPage;
-	uint16_t count;
 	//TODO test if padding here improves performance
 	BTreeKV<T> children[0];
 };
@@ -60,6 +59,7 @@ struct BTreeLeaf {
 template <class T>
 struct BTreePage {
 	bool isLeaf;
+	uint16_t count;
 	//TODO test if padding here improves performance
 	union {
 		BTreeNode<T> node;
@@ -126,9 +126,11 @@ private:
 	 * @param keepLocks whether to hold the locks. If true, the corresponding
 	 *        BufferFrame objects are passed along and valid. If false,
 	 *        lock-coupling is used and any returned BufferFrames are invalid.
-	 * @return a pair of the would-be PageID and a vector of BufferFrames
+	 * @return a tuple of the would-be PageID, a vector of BufferFrames and
+	 *         a boolean whether the leaf is full.
 	 */
-	std::pair<PageID, std::vector<BufferFrame*>> lookupPage(T key, bool keepLocks);
+	std::tuple<PageID, std::vector<BufferFrame*>, bool> lookupPage(
+			T key, bool keepLocks);
 
 	/** fields **/
 

@@ -9,6 +9,7 @@ namespace btree_test {
 
 // Comparator
 class UInt64Comp {
+public:
 	bool operator()(uint64_t a, uint64_t b) const {
 		return a<b;
 	}
