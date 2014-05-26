@@ -158,7 +158,7 @@ int test(const unsigned pageSize) {
 	return 0;
 }
 
-TEST(SlottedTest, SlottedTest) {
+TEST(SlottedTest, DISABLED_SlottedTest) {
 	test(PAGE_SIZE);
 }
 

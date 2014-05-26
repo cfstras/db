@@ -303,7 +303,7 @@ bool SPSegment::remove(TID tid) {
 		header->freeSpace += slot->len;
 	}
 	initializeSlot(slot);
-	//moveBackCount(header);
+	moveBackCount(header);
 #ifdef DEBUG
 	freeSpaceAtStart = page->dataStart -
 			page->count*sizeof(Slot) - sizeof(PageHeader);
