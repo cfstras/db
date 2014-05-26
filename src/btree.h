@@ -16,8 +16,8 @@ namespace {
  */
 template <class T>
 struct BTreeKP {
-	T lowestKey;
 	PageID page;
+	T lowestKey;
 };
 
 /**
@@ -26,7 +26,9 @@ struct BTreeKP {
 template <class T>
 struct BTreeNode {
 	PageID upperPage;
-	uint64_t count;
+	uint64_t size;
+	uint16_t count;
+	//TODO test if padding here improves performance
 	BTreeKP<T> children[0];
 };
 
@@ -35,8 +37,8 @@ struct BTreeNode {
  */
 template <class T>
 struct BTreeKV {
-	T key;
 	TID value;
+	T key;
 };
 
 /**
@@ -126,7 +128,7 @@ private:
 	 *        lock-coupling is used and any returned BufferFrames are invalid.
 	 * @return a pair of the would-be PageID and a vector of BufferFrames
 	 */
-	std::pair<PageID, std::vector<BufferFrame>> lookupPage(T key, bool keepLocks);
+	std::pair<PageID, std::vector<BufferFrame*>> lookupPage(T key, bool keepLocks);
 
 	/** fields **/
 
