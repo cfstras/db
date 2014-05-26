@@ -58,8 +58,10 @@ int test(const unsigned pageSize) {
 		bool full = true;
 		for (unsigned p=0; p<initialSize; ++p) {
 			if (loadFactor*pageSize - usage[p] > s.size()) {
+#ifndef SILENT
 				cerr << "in page " << hex << (p+1) << dec << " expecting "
 						<< (loadFactor*pageSize - usage[p]) << endl;
+#endif
 				full = false;
 				break;
 			}

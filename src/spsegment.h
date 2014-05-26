@@ -161,5 +161,5 @@ private:
 	SegmentID segment_;
 	PageID headPageID;
 	BufferFrame* headerFrame;
-	SegmentHeader* header;
+	SegmentHeader* header; //TODO race-condition here!
 };
