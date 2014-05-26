@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <cstdlib>
 #include "btree.h"
 
 using namespace std;
@@ -22,6 +23,7 @@ struct Char {
 class BTreeTest : public ::testing::Test {
 protected:
 	void SetUp() {
+		srand(0);
 		fm = shared_ptr<FileManager>(new FileManager("test_data"));
 		bm = shared_ptr<BufferManager>(new BufferManager(128, fm.get()));
 	}
@@ -37,6 +39,33 @@ TEST_F(BTreeTest, Construct) {
 TEST_F(BTreeTest, Init) {
 	BTree<uint64_t, UInt64Comp> tree(4, bm);
 	tree.init();
+}
+
+
+TEST_F(BTreeTest, Insert) {
+	BTree<uint64_t, UInt64Comp> tree(4, bm);
+	tree.init();
+
+	uint64_t key = rand();
+	TID value = rand();
+	TID old = tree.insert(key, value);
+	EXPECT_EQ(0, old) << "Tree should be empty but returned "<< old;
+}
+
+
+TEST_F(BTreeTest, InsertLookup) {
+	BTree<uint64_t, UInt64Comp> tree(4, bm);
+	tree.init();
+
+	uint64_t key = rand();
+	TID value = rand();
+	TID old = tree.insert(key, value);
+	EXPECT_EQ(0, old) << "Tree should be empty but returned "<< old <<
+			" (inserted "<<value<<", key="<<key<<")";
+
+	TID v2 = tree.lookup(key);
+	EXPECT_EQ(value, v2) << "Tree returned wrong value " << v2 <<
+			" (inserted "<<value<<", key="<<key<<")";
 }
 
 
