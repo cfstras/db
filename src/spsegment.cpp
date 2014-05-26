@@ -1,6 +1,7 @@
 #include "spsegment.h"
 
 #include <iostream>
+#include <algorithm>
 #include <cstring>
 #include <cassert>
 
@@ -69,10 +70,87 @@ void SPSegment::initializeSlot(Slot* slot) {
 	slot->len = 0;
 }
 
+void SPSegment::compactifyPage(PageHeader *page) {
+	/*
+	 * First, we load all slot pointers into a vector. Then, we sort the slots
+	 * by their offset in descending order.
+	 * Then, we can safely move them one after another and
+	 * finally set the new data in the header.
+	 */
+
+	vector<pair<Slot*, SlotID>> slots;
+	slots.reserve(page->count);
+	for (SlotID slotIndex = 0; slotIndex < page->count; slotIndex++) {
+		slots.emplace_back(pair<Slot*, SlotID>(&page->slots[slotIndex], slotIndex));
+	}
+	sort(slots.begin(), slots.end(),
+		[](const pair<Slot*, SlotID> &a, const pair<Slot*, SlotID> &b){
+			if (a.first->T != 255) {
+				if (b.first->T != 255) {
+					return false;
+				} else {
+					return true;
+				}
+			} else if (b.first->T != 255) {
+				return false;
+			}
+			if (a.first->len == 0) {
+				if (b.first->len == 0) {
+					return true;
+				} else {
+					return false;
+				}
+			} else if (b.first->len == 0) {
+				return true;
+			}
+			return a.first->offset > b.first->offset;
+		});
+
+	SlotID dataStart = PAGE_SIZE;
+	SlotID firstFreeSlot = page->count;
+	for (pair<Slot*, SlotID> &entry : slots) {
+		Slot* slot = entry.first;
+		if (slot->T != 255) continue;
+		if (slot->offset == 0 && slot->len == 0) {
+			if (entry.second < firstFreeSlot) firstFreeSlot = entry.second;
+			continue;
+		}
+		Slot oldSlot = *entry.first;
+
+		slot->offset = dataStart - slot->len;
+		assert(slot->offset >= oldSlot.offset); // slot moved backwards
+		if (slot->S != 0) oldSlot.len += sizeof(TID);
+		if (slot->offset != oldSlot.offset) {
+			memmove(reinterpret_cast<char*>(page) + slot->offset,
+					reinterpret_cast<char*>(page) + oldSlot.offset,
+					oldSlot.len);
+		}
+
+		dataStart -= oldSlot.len;
+	}
+	page->dataStart = dataStart;
+	page->firstFreeSlot = firstFreeSlot;
+	moveBackCount(page);
+	// recalc freeSpace
+	page->freeSpace = dataStart - page->count * sizeof(Slot) - sizeof(PageHeader);
+}
+
+void SPSegment::moveBackCount(PageHeader *page) {
+	for (SlotID slotIndex = page->count-1;;slotIndex--) {
+		const Slot slot = page->slots[slotIndex];
+		if (slot.offset == 0 && slot.len == 0) {
+			page->count = slotIndex;
+			page->freeSpace += sizeof(Slot);
+		} else {
+			break;
+		}
+		if (slotIndex == 0) break;
+	}
+}
+
 TID SPSegment::insert(const Record& r) {
 	// find free page
-	//TODO also look for fitting spaces
-	//TODO also look for fragmented spaces
+	//TODO use empty slots, but always beginning of data
 	//TODO implement FSI
 
 	// check for maximum
@@ -97,8 +175,18 @@ TID SPSegment::insert(const Record& r) {
 		if (freeSpaceAtStart >= r.len() + sizeof(Slot)) {
 			foundOne = true;
 			break;
+		} else if (page->freeSpace >= r.len() + sizeof(Slot)) {
+			compactifyPage(page);
+
+#ifdef DEBUG
+			freeSpaceAtStart = page->dataStart -
+				page->count*sizeof(Slot) - sizeof(PageHeader);
+			assert(freeSpaceAtStart <= page->freeSpace);
+#endif
+
+			foundOne = true;
+			break;
 		} else {
-			//TODO page is full. compactify?
 			unloadPage(frame, false);
 			page = nullptr; frame = nullptr;
 		}
@@ -123,7 +211,24 @@ TID SPSegment::insert(const Record& r) {
 
 	assert(page->freeSpace >= r.len() + sizeof(Slot));
 	uint16_t slotIndex = page->firstFreeSlot++;
-	page->count++;
+	// search next firstFreeSlot
+	if (slotIndex == page->count) {
+		page->count++;
+	} else {
+		while (page->firstFreeSlot < page->count) {
+			//TODO remove needs firstFreeSlot fixed
+			const Slot slot = page->slots[page->firstFreeSlot];
+			if (slot.T == 255 && slot.len == 0 && slot.offset == 0) {
+				break;
+			} else {
+				page->firstFreeSlot++;
+			}
+		}
+		if (page->firstFreeSlot == page->count) {
+			page->count++;
+		}
+	}
+
 	page->freeSpace -= r.len() + sizeof(Slot);
 
 	Slot slot;
@@ -188,23 +293,22 @@ bool SPSegment::remove(TID tid) {
 		newTID = slot->tid;
 	} else {
 		// ignore S, only go downwards the rabbit hole, not upwards
-		if (header->firstFreeSlot-1 == slotIndex) {
-			// only decrement the firstFreeSlot if this is the last one
-			header->firstFreeSlot = slotIndex;
-		}
 		if (slot->S != 0) {
 			// increase length for dataStart and freeSpace calculations
 			slot->len += sizeof(TID);
 		}
-		if (header->dataStart == slot->offset) {
+		if (header->dataStart == slot->offset) { //TODO also do these for free slots before this one
 			header->dataStart += slot->len;
 		}
 		header->freeSpace += slot->len;
 	}
-	if (header->count-1 == slotIndex) {
-		header->count = slotIndex;
-	}
 	initializeSlot(slot);
+	//moveBackCount(header);
+#ifdef DEBUG
+	freeSpaceAtStart = page->dataStart -
+			page->count*sizeof(Slot) - sizeof(PageHeader);
+	assert(freeSpaceAtStart <= page->freeSpace);
+#endif
 	unloadPage(frame, true);
 
 	if (newTID != 0) {

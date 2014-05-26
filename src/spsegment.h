@@ -32,26 +32,24 @@ struct FSI : SegmentHeader {
 #pragma pack(1)
 
 // Structure of a Page Slot
-typedef struct {
-	union {
-		uint64_t tid;
+typedef union {
+	uint64_t tid;
 
-		struct {
-			uint8_t T; // if != 255, TID points to other record
+	struct {
+		uint8_t T; // if != 255, TID points to other record
 
-			/**
-			 * if 0, item is at offset, length
-			 * else item was moved from somewhere:
-			 * item is at offset+(8bytes), len,
-			 * offset contains original TID
-			 */
-			uint8_t S;
-			uint16_t __padding;
+		/**
+		 * if 0, item is at offset, length
+		 * else item was moved from somewhere:
+		 * item is at offset+(8bytes), len,
+		 * offset contains original TID
+		 */
+		uint8_t S;
+		uint16_t __padding;
 
-			uint16_t offset;
-			uint16_t len;
-			// if offset == len == 0, slot is free
-		};
+		uint16_t offset;
+		uint16_t len;
+		// if offset == len == 0, slot is free
 	};
 } Slot;
 
@@ -140,6 +138,9 @@ private:
 	BufferFrame* loadPage(PageID pageID, bool exclusive);
 	void unloadPage(BufferFrame *frame, bool dirty);
 	void initPage(PageHeader *header);
+
+	void compactifyPage(PageHeader *page);
+	void moveBackCount(PageHeader *page);
 
 	/**
 	 * Loads and returns the page at this TID

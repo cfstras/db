@@ -7,7 +7,7 @@
 #endif
 
 #ifndef PAGE_SIZE
-#	define PAGE_SIZE 1024 * 16
+#	define PAGE_SIZE 1024 * 4
 #endif
 
 #include <string>
