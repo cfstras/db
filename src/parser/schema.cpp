@@ -2,18 +2,20 @@
 
 #include <sstream>
 
-static std::string type(const Schema::Relation::Attribute& attr) {
+using namespace std;
+
+static string type(const Schema::Relation::Attribute& attr) {
 	Types::Tag type = attr.type;
 	switch(type) {
 		case Types::Tag::Integer:
 			return "Integer";
 		/*case Types::Tag::Numeric: {
-			std::stringstream ss;
+			stringstream ss;
 			ss << "Numeric(" << attr.len1 << ", " << attr.len2 << ")";
 			return ss.str();
 		}*/
 		case Types::Tag::Char: {
-			std::stringstream ss;
+			stringstream ss;
 			ss << "Char(" << attr.len << ")";
 			return ss.str();
 		}
@@ -21,16 +23,29 @@ static std::string type(const Schema::Relation::Attribute& attr) {
 	throw;
 }
 
-std::string Schema::toString() const {
-	std::stringstream out;
+string Schema::toString() const {
+	stringstream out;
 	for (const Schema::Relation& rel : relations) {
-		out << rel.name << std::endl;
-		out << "\tPrimary Key:";
-		for (unsigned keyId : rel.primaryKey)
-			out << ' ' << rel.attributes[keyId].name;
-		out << std::endl;
-		for (const auto& attr : rel.attributes)
-			out << '\t' << attr.name << '\t' << type(attr) << (attr.notNull ? " not null" : "") << std::endl;
+		out << "create table " << rel.name << " (" << endl;
+
+		for (const auto& attr : rel.attributes) {
+			out << '\t' << attr.name << '\t' << type(attr)
+					<< (attr.notNull ? "\tnot null" : "")
+					<< "," << endl;
+		}
+
+		out << "\tprimary key (";
+		bool first=true;
+		for (unsigned keyId : rel.primaryKey) {
+			if (first) {
+				first = false;
+			} else {
+				out << ", ";
+			}
+			out << rel.attributes[keyId].name;
+		}
+		out << ')' << endl;
+		out << ");" << endl;
 	}
 	return out.str();
 }
