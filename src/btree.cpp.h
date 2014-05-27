@@ -114,6 +114,7 @@ TID BTree<T, CMP>::insert(T key, TID tid) {
 
 	assert(pageID != -1);
 	if (leafFull) {
+		// split the leaf
 		assert(false); //TODO implement
 	}
 	BufferFrame *frame = loadPage(pageID, true);
