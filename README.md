@@ -1,18 +1,14 @@
-# Assignment 3: Slotted Pages
+# Assignment 4: B-Tree
 
 (Hopefully complete) build requisites, example for Debian-ish systems:
 ```bash
 apt-get install libgtest-dev build-essential clang
 ```
 
-- Implementation is in `src/spsegment.{cpp, h}`
-- Unittests are in `test/spsegment.cpp`
-- `SPSegment::insert` for some reason does not work with big records -- the SlottedTest will not work.
-- `insert` is currently only good for filling up pages, `remove()`d slots will not be reclaimed
-- My random approach in `BufferManager::free` proves to be quite slow when doing a lot of work
-- No FSI (yet). This makes the slowness even worse
-- No `SPSegment::update` until insert works correctly
-- I left out Exercise 1, Metadata/schema segment. Didn't have the time.
+- Implementation is in `src/btree.{cpp.h, h}`
+- Unittests are in `test/btree.cpp`
+- What does (sort of) work: insert, lookup
+- What does not work: node split, remove
 
 ## Running the unittests
 
@@ -20,12 +16,12 @@ apt-get install libgtest-dev build-essential clang
 make test
 ```
 
-This builds with `-O2`, because the unittests take quite a lot of time without.  
+This builds with `-O2`, because the unittests take quite a lot of time without.
 Some of them are disabled (prefixed with "DISABLED_") to mitigate this a bit.
 
 ## Running unittests with debug build
 
-Debug builds do some sanity assertions and a lot more output.  
+Debug builds do some sanity assertions and a lot more output.
 Helpful for valgrinding and debugging.
 
 ```bash
