@@ -29,26 +29,26 @@ debug: build-debug
 
 build-debug: CXXFLAGS += $(DEBUG)
 build-debug:
-	[ -f $(OBJDIR)/OPTIMIZED ] && make clean; true
-	[ -f $(OBJDIR)/DEBUG ] || make clean; true
-	@make dir
+	[ -f $(OBJDIR)/OPTIMIZED ] && $(MAKE) clean; true
+	[ -f $(OBJDIR)/DEBUG ] || $(MAKE) clean; true
+	$(MAKE) dir
 	touch $(OBJDIR)/DEBUG
-	@make build-test
+	$(MAKE) build-test
 
 .PHONY: test
 test:
-	[ -f $(OBJDIR)/OPTIMIZED ] && make clean; true
-	[ -f $(OBJDIR)/DEBUG ] && make clean; true
-	@make build-test-flag
+	[ -f $(OBJDIR)/OPTIMIZED ] && $(MAKE) clean; true
+	[ -f $(OBJDIR)/DEBUG ] && $(MAKE) clean; true
+	$(MAKE) build-test-flag
 	$(BINDIR)/$(TEST_BINARY)
 
 .PHONY: opt
 opt:
-	[ -f $(OBJDIR)/OPTIMIZED ] || make clean; true
-	[ -f $(OBJDIR)/DEBUG ] && make clean; true
-	@make dir
+	[ -f $(OBJDIR)/OPTIMIZED ] || $(MAKE) clean; true
+	[ -f $(OBJDIR)/DEBUG ] && $(MAKE) clean; true
+	$(MAKE) dir
 	touch $(OBJDIR)/OPTIMIZED
-	@make build-opt
+	$(MAKE) build-opt
 
 build-opt: CXXFLAGS += $(OPTIMIZED)
 build-opt: build
@@ -70,7 +70,7 @@ dir:
 
 .PHONY: datagen
 datagen:
-	make -C datagenerator silent
+	$(MAKE) -C datagenerator silent
 
 SRCS = $(shell cd $(SRCDIR) && find * -type f -name "*.cpp")
 
