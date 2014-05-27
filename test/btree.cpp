@@ -69,5 +69,24 @@ TEST_F(BTreeTest, InsertLookup) {
 			" (inserted "<<value<<", key="<<key<<")";
 }
 
+TEST_F(BTreeTest, InsertTwice) {
+	BTree<uint64_t, UInt64Comp> tree(4, bm);
+	tree.init();
+
+	uint64_t key = rand();
+	TID value = rand();
+	TID old = tree.insert(key, value);
+	EXPECT_EQ(0, old) << "Tree should be empty but returned "<< old <<
+			" (inserted "<<value<<", key="<<key<<")";
+
+	TID v2 = rand();
+	old = tree.insert(key, v2);
+	EXPECT_EQ(value, old) << "Second insert returned "<< old <<
+			" (inserted "<<v2<<", key="<<key<<", after inserting "<<value<<")";
+
+	TID v3 = tree.lookup(key);
+	EXPECT_EQ(v2, v3) << "Tree returned wrong value " << v3 <<
+			" (inserted "<<v2<<", key="<<key<<")";
+}
 
 } // namespace
