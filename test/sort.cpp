@@ -113,7 +113,7 @@ TEST_F(SortTest, SortMany) {
 	sortTest(2048, 32 * 8);
 }
 
-TEST_F(SortTest, DISABLED_SortMuchRam) {
+TEST_F(SortTest, SortMuchRam) {
 	sortTest(8, MEG * 1024 * 2);
 }
 
@@ -121,7 +121,7 @@ TEST_F(SortTest, SortNothing) {
 	sortTest(0, 32 * 8);
 }
 
-TEST_F(SortTest, DISABLED_Sort16) {
+TEST_F(SortTest, Sort16) {
 	sortTest(MEG * 16 / 8, // 16M data
 		MEG * 1024 * 1); // 2GiB Memory
 }
