@@ -33,15 +33,22 @@ void BTree<T, CMP>::unloadPage(BufferFrame *frame, bool dirty) {
 
 template <typename T, typename CMP>
 void BTree<T, CMP>::init() {
-	BufferFrame *headFrame = loadPage(0, true);
-	BTreePage<T> *headPage = (BTreePage<T>*) headFrame->getData();
+	BufferFrame *frame = loadPage(0, true);
+	BTreePage<T> *page = (BTreePage<T>*) frame->getData();
 
-	headPage->isLeaf = false;
-	BTreeNode<T> *headNode = &headPage->node;
-	headNode->upperPage = -1;
-	headPage->count = 0;
+	page->isLeaf = false;
+	BTreeNode<T> *headNode = &page->node;
+	PageID leafPage = 1;
+	headNode->upperPage = leafPage; // also add leaf
+	page->count = 0;
+	unloadPage(frame, true);
 
-	unloadPage(headFrame, true);
+	frame = loadPage(leafPage, true);
+	page = (BTreePage<T>*) frame->getData();
+	page->isLeaf = true;
+	page->count = 0;
+	page->leaf.nextPage = 0;
+	unloadPage(frame, true);
 }
 
 template <typename T, typename CMP>
@@ -65,9 +72,6 @@ tuple<PageID, vector<BufferFrame*>, bool> BTree<T, CMP>::lookupPage(T key, bool 
 		BTreeNode<T> *node = &page->node;
 		PageID candidate = node->upperPage;
 
-		if (page->count == 0) {
-			break;
-		}
 		for (uint16_t i = 0; i < page->count; i++) {
 			BTreeKP<T> *child = &node->children[i];
 			if (cmp(key, child->lowestKey)) {
@@ -114,21 +118,8 @@ TID BTree<T, CMP>::insert(T key, TID tid) {
 	}
 	BufferFrame *frame = loadPage(pageID, true);
 	BTreePage<T> *page = (BTreePage<T>*) frame->getData();
-	if (!page->isLeaf) { // page is empty, add leaf
-		BTreeNode<T> *node = &page->node;
-		PageID newPage = pageID+1; //TODO find out next pageID
-		node->upperPage = newPage;
-		node->children[0].page = 0; //TODO ???
-		node->children[9].lowestKey = key;
-		page->count = 1;
+	assert(page->isLeaf); // should always return a leaf
 
-		unloadPage(frame, true);
-		frame = loadPage(newPage, true);
-		page = (BTreePage<T>*) frame->getData();
-		page->isLeaf = true;
-		page->count = 0;
-		page->leaf.nextPage = 0;
-	}
 	BTreeLeaf<T> *leaf = &page->leaf;
 	TID oldTID = 0;
 
@@ -145,7 +136,7 @@ TID BTree<T, CMP>::insert(T key, TID tid) {
 		break;
 	}
 	if (index < count) {
-		if (leaf->children[index].key == key) {
+		if (eq(cmp, leaf->children[index].key, key)) {
 			oldTID = leaf->children[index].value;
 		}
 		// move!
@@ -162,6 +153,35 @@ TID BTree<T, CMP>::insert(T key, TID tid) {
 
 template <typename T, typename CMP>
 TID BTree<T, CMP>::lookup(T key) {
-	//TODO implement
+	auto ret = lookupPage(key, false);
+	PageID pageID = get<0>(ret);
+	CMP cmp;
+
+	if (pageID == -1) { // key not found at all
+		return 0;
+	}
+	BufferFrame *frame = loadPage(pageID, true);
+	BTreePage<T> *page = (BTreePage<T>*) frame->getData();
+	if (!page->isLeaf) { // page is not a leaf ==> key does not exist
+		unloadPage(frame, false);
+		return 0;
+	}
+
+	BTreeLeaf<T> *leaf = &page->leaf;
+	uint16_t count = page->count;
+	for (uint16_t i = 0; i < count; i++) {
+		BTreeKV<T> *child = &leaf->children[i];
+		if (cmp(key, child->key)) {
+			// key < slot
+			continue;
+		}
+		if (!eq(cmp, key, child->key)) {
+			unloadPage(frame, false);
+			return 0;
+		}
+		unloadPage(frame, false);
+		return child->value;
+	}
+	unloadPage(frame, false);
 	return 0;
 }

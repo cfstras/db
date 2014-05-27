@@ -108,6 +108,10 @@ public:
 	 */
 	TID lookup(T key);
 
+	static inline bool eq(CMP cmp, T a, T b) {
+		return !(cmp(a, b)) && !(cmp(b, a));
+	}
+
 private:
 	DISALLOW_COPY_AND_ASSIGN(BTree);
 
