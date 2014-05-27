@@ -141,7 +141,9 @@ private:
 	std::shared_ptr<BufferManager> bufferManager_;
 
 	SegmentID segment_;
-	PageID headPageID;
+	PageID rootPageID;
+
+	PageID numPages;
 };
 
 // hax hax

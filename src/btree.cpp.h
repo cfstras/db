@@ -7,16 +7,16 @@ using namespace std;
 template <typename T, typename CMP>
 BTree<T, CMP>::BTree(SegmentID segment, shared_ptr<BufferManager> bufferManager) :
 		bufferManager_(bufferManager),
-		segment_(segment)
+		segment_(segment),
+		rootPageID(0), // TODO materialize from metadata segment
+		numPages(0) // TODO same
 {
-	headPageID = util::pageIDFromSegmentID(segment_);
 
 }
 
 template <typename T, typename CMP>
 BTree<T, CMP>::~BTree() {
-	//TODO
-
+	//TODO save to metasegment
 }
 
 template <typename T, typename CMP>
@@ -33,12 +33,12 @@ void BTree<T, CMP>::unloadPage(BufferFrame *frame, bool dirty) {
 
 template <typename T, typename CMP>
 void BTree<T, CMP>::init() {
-	BufferFrame *frame = loadPage(0, true);
+	BufferFrame *frame = loadPage(rootPageID, true);
 	BTreePage<T> *page = (BTreePage<T>*) frame->getData();
 
 	page->isLeaf = false;
 	BTreeNode<T> *headNode = &page->node;
-	PageID leafPage = 1;
+	PageID leafPage = rootPageID+1;
 	headNode->upperPage = leafPage; // also add leaf
 	page->count = 0;
 	unloadPage(frame, true);
@@ -49,6 +49,8 @@ void BTree<T, CMP>::init() {
 	page->count = 0;
 	page->leaf.nextPage = 0;
 	unloadPage(frame, true);
+
+	numPages = 2; //TODO save
 }
 
 template <typename T, typename CMP>
@@ -56,7 +58,7 @@ tuple<PageID, vector<BufferFrame*>, bool> BTree<T, CMP>::lookupPage(T key, bool 
 	vector<BufferFrame*> frames;
 	CMP cmp;
 
-	PageID pageID = 0; //TODO insert head pageID here
+	PageID pageID = rootPageID;
 	BufferFrame *frame = loadPage(pageID, keepLocks);
 	frames.push_back(frame);
 	BTreePage<T> *page = (BTreePage<T>*) frame->getData();
@@ -83,7 +85,7 @@ tuple<PageID, vector<BufferFrame*>, bool> BTree<T, CMP>::lookupPage(T key, bool 
 			}
 		}
 		BufferFrame *lastFrame = frame;
-		if (candidate == 0 || candidate == -1) { //TODO insert head pageID here
+		if (candidate == rootPageID || candidate == -1) {
 			pageID = -1;
 			break;
 		}
