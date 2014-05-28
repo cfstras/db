@@ -45,12 +45,17 @@ void BTree<T, CMP>::init() {
 
 	frame = loadPage(leafPage, true);
 	page = (BTreePage<T>*) frame->getData();
+	initLeaf(page);
+
+	numPages = 2; //TODO save
+}
+
+template <typename T, typename CMP>
+BTreeLeaf<T> *BTree<T, CMP>::initLeaf(BTreePage<T> *page) {
 	page->isLeaf = true;
 	page->count = 0;
 	page->leaf.nextPage = 0;
-	unloadPage(frame, true);
-
-	numPages = 2; //TODO save
+	return &page->leaf;
 }
 
 template <typename T, typename CMP>
@@ -115,17 +120,39 @@ TID BTree<T, CMP>::insert(T key, TID tid) {
 	CMP cmp;
 
 	assert(pageID != -1);
-	if (leafFull) {
-		// split the leaf
-		assert(false); //TODO implement
-	}
+
 	BufferFrame *frame = loadPage(pageID, true);
 	BTreePage<T> *page = (BTreePage<T>*) frame->getData();
+	BTreeLeaf<T> *leaf = &page->leaf;
 	assert(page->isLeaf); // should always return a leaf
 
-	BTreeLeaf<T> *leaf = &page->leaf;
-	TID oldTID = 0;
+	if (leafFull) {
+		// split the leaf
+		PageID oldPageID = pageID;
+		BufferFrame *oldFrame = frame;
+		BTreePage<T> *oldPage = page;
+		BTreeLeaf<T> *oldLeaf = leaf;
 
+		pageID = numPages++;
+		frame = loadPage(pageID, true);
+		page = (BTreePage<T>*) frame->getData();
+		leaf = initLeaf(page);
+
+		oldLeaf->nextPage = pageID;
+
+		for (uint16_t i = oldPage->count/2, i2 = 0; i < oldPage->count;
+					i++, i2++) {
+			leaf->children[i2] = oldLeaf->children[i];
+
+		}
+		oldPage->count = oldPage->count/2;
+		page->count = (oldPage->count+1)/2;
+		unloadPage(oldFrame);
+
+		//TODO fixup parent page
+	}
+
+	TID oldTID = 0;
 	uint16_t count = page->count;
 	uint16_t index = count;
 	for (uint16_t i = 0; i < count; i++) {
