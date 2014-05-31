@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 #include <tuple>
+#include <mutex>
+#include <atomic>
 
 #include "util.h"
 #include "buffermanager.h"
@@ -12,59 +14,28 @@ namespace {
 #pragma pack(push)
 #pragma pack(1)
 
-/**
- * Describes a key/child page pair in a node.
- */
-template <class T>
-struct BTreeKP {
-	PageID page;
-	T lowestKey;
-};
-
-/**
- * Describes a node page.
- */
-template <class T>
-struct BTreeNode {
-	PageID upperPage;
-	//uint64_t size;
-	//TODO test if padding here improves performance
-	BTreeKP<T> children[0];
-};
-
-/**
- * Describes a key/value pair in a leaf.
- */
-template <class T>
+template <typename T>
 struct BTreeKV {
-	TID value;
+	union {
+		PageID page; // in a node
+		TID value; // in a leaf
+	};
 	T key;
 };
 
 /**
- * Describes a leaf.
- */
-template <class T>
-struct BTreeLeaf {
-	PageID nextPage;
-	//TODO test if padding here improves performance
-	BTreeKV<T> children[0];
-};
-
-/**
  * Describes a B-Tree page.
- * If isLeaf is true, _only_ the leaf field is to be used,
- * If isLeaf is false, _only_ the node field is to be used.
  */
-template <class T>
+template <typename T>
 struct BTreePage {
 	bool isLeaf;
 	uint16_t count;
 	//TODO test if padding here improves performance
 	union {
-		BTreeNode<T> node;
-		BTreeLeaf<T> leaf;
+		PageID upperPage; // in a node
+		PageID nextPage; // in a leaf
 	};
+	BTreeKV<T> children[0];
 };
 
 #pragma pack(pop)
@@ -136,14 +107,23 @@ private:
 	std::tuple<PageID, std::vector<BufferFrame*>, bool> lookupPage(
 			T key, bool keepLocks);
 
+	void *initLeaf(BTreePage<T> *page);
+
+	/**
+	 * Splits the leaf, splitting parents as necessary.
+	 * @return tuple of (new leaf PageID, new leaf BufferFrame)
+	 */
+	std::tuple<PageID, BufferFrame*> splitUpwards(T key, PageID oldLeafPageID);
+
 	/** fields **/
 
 	std::shared_ptr<BufferManager> bufferManager_;
 
-	SegmentID segment_;
-	PageID rootPageID;
+	const SegmentID segment_;
 
-	PageID numPages;
+	std::atomic<PageID> rootPageID;
+	std::atomic<PageID> numPages;
+
 };
 
 // hax hax
