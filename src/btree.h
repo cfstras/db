@@ -107,7 +107,7 @@ private:
 	std::tuple<PageID, std::vector<BufferFrame*>, bool> lookupPage(
 			T key, bool keepLocks);
 
-	void *initLeaf(BTreePage<T> *page);
+	void initLeaf(BTreePage<T> *page);
 
 	/**
 	 * Splits the leaf, splitting parents as necessary.

@@ -50,7 +50,7 @@ void BTree<T, CMP>::init() {
 }
 
 template <typename T, typename CMP>
-void *BTree<T, CMP>::initLeaf(BTreePage<T> *page) {
+void BTree<T, CMP>::initLeaf(BTreePage<T> *page) {
 	page->isLeaf = true;
 	page->count = 0;
 	page->nextPage = 0;
@@ -119,27 +119,30 @@ tuple<PageID, BufferFrame*> BTree<T, CMP>::splitUpwards(T key, PageID oldLeafPag
 
 	assert(full);
 	assert(oldLeafPageGet == oldLeafPage);
-	assert(frames.back()->pageID() == oldLeafPage);
+	assert(frames.back()->pageId() == oldLeafPage);
 
 	size_t index = frames.size()-1;
 	PageID oldPageID, newPageID;
-	BufferFrame *oldFrame, newFrame;
-	BTreePage<T> *oldPage, newPage;
+	BufferFrame *oldFrame, *newFrame;
+	BTreePage<T> *oldPage, *newPage;
 
-	T overflowKey; TID overflowValue; boolean overflow = false;
+	bool wasFirst = true;
+	tuple<PageID, BufferFrame*> returnVal;
+	T overflowKey; TID overflowValue; bool overflow = false;
 	while (full) {
 		// split the leaf
 		oldFrame = frames[index];
-		oldPageID = oldFrame->pageID();
-		BTreePage<T> *oldPage = (BTreePage<T>*)oldFrame->getData();
+		oldPageID = oldFrame->pageId();
+		oldPage = (BTreePage<T>*)oldFrame->getData();
 
-		PageID newPageID = numPages++;
-		BufferFrame *newFrame = loadPage(newPageID, true);
-		BTreePage<T> *newPage = (BTreePage<T>*) newFrame->getData();
+		newPageID = numPages++;
+		newFrame = loadPage(newPageID, true);
+		newPage = (BTreePage<T>*) newFrame->getData();
 		initLeaf(newPage);
 
 		oldPage->nextPage = newPageID;
-		T newKey = oldPage->children[oldPage->count/2].key;
+		T	newKey		= oldPage->children[oldPage->count/2].key;
+		TID	newValue	= oldPage->children[oldPage->count/2].value;
 		T oldKey = oldPage->children[0].key;
 
 		for (uint16_t i = oldPage->count/2, i2 = 0; i < oldPage->count;
@@ -155,31 +158,48 @@ tuple<PageID, BufferFrame*> BTree<T, CMP>::splitUpwards(T key, PageID oldLeafPag
 			newPage->count++;
 		}
 
+		if (wasFirst) {
+			wasFirst = false;
+			returnVal = make_tuple(newPageID, newFrame);
+		} else {
+			unloadPage(newFrame, true);
+		}
 		unloadPage(oldFrame, true);
-		unloadPage(newFrame, true);
 
 		if (index == 0) {
 			//TODO adjust root pageID
 			rootPageID = newPageID;
 			break;
 		}
-		//TODO fixup parent page if not root
-		oldFrame = frames[index];
-		oldPage = (BTreePage*)oldFrame->getData();
+		// fixup parent page if not root
+		oldFrame = frames[index-1];
+		oldPage = (BTreePage<T>*)oldFrame->getData();
 		uint16_t inRootInd = 0;
 		while (true) {
 			assert(inRootInd < oldPage->count);
-			if (eq(cmp,oldPage->children[inRootInd].key, oldKey) {
+			if (eq(cmp,oldPage->children[inRootInd].key, oldKey)) {
 				break;
 			}
 			inRootInd++;
 		}
 		// move right here
+		uint16_t decrease = 0;
+		if ((oldPage->count+1) * sizeof(BTreeKV<T>) > PAGE_SIZE) {
+			decrease = 1;
+			overflow = true;
+			overflowKey = oldPage->children[oldPage->count-1].key;
+			overflowValue = oldPage->children[oldPage->count-1].value;
+			full = (oldPage->count+2) * sizeof(BTreeKV<T>) > PAGE_SIZE;
+		}
+		memmove(&oldPage->children[inRootInd+1], &oldPage->children[inRootInd],
+				sizeof(BTreeKV<T>) * (oldPage->count - inRootInd - decrease));
+		oldPage->count += 1 - decrease;
+		oldPage->children[inRootInd].key = newKey;
+		oldPage->children[inRootInd].value = newValue;
 
-		if(index == 0) break;
 		index--;
 	}
-	//TODO return
+	return returnVal;
 }
 
 template <typename T, typename CMP>
@@ -191,10 +211,11 @@ TID BTree<T, CMP>::insert(T key, TID tid) {
 
 	assert(pageID != -1);
 
+	BufferFrame *frame;
 	if (leafFull) {
-		tie(pageID, frame) = splitUpwards(pageID);
+		tie(pageID, frame) = splitUpwards(key, pageID);
 	} else {
-		BufferFrame *frame = loadPage(pageID, true);
+		frame = loadPage(pageID, true);
 	}
 	BTreePage<T> *page = (BTreePage<T>*) frame->getData();
 	assert(page->isLeaf); // should always return a leaf
