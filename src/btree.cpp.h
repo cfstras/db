@@ -45,6 +45,7 @@ void BTree<T, CMP>::init() {
 	frame = loadPage(leafPage, true);
 	page = (BTreePage<T>*) frame->getData();
 	initLeaf(page);
+	unloadPage(frame, true);
 
 	numPages = 2; //TODO save
 }
