@@ -40,6 +40,7 @@ test:
 	[ -f $(OBJDIR)/OPTIMIZED ] && $(MAKE) clean; true
 	[ -f $(OBJDIR)/DEBUG ] && $(MAKE) clean; true
 	$(MAKE) build-test-flag
+	rm -rf test_data/
 	$(BINDIR)/$(TEST_BINARY)
 
 .PHONY: opt
