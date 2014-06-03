@@ -121,7 +121,6 @@ tuple<PageID, BufferFrame*> BTree<T, CMP>::splitUpwards(T key, PageID oldLeafPag
 	assert(oldLeafPageGet == oldLeafPage);
 	assert(frames.back()->pageId() == oldLeafPage);
 
-	size_t index = frames.size()-1;
 	PageID oldPageID, newPageID;
 	BufferFrame *oldFrame, *newFrame;
 	BTreePage<T> *oldPage, *newPage;
@@ -131,7 +130,8 @@ tuple<PageID, BufferFrame*> BTree<T, CMP>::splitUpwards(T key, PageID oldLeafPag
 	T overflowKey; TID overflowValue; bool overflow = false;
 	while (full) {
 		// split the leaf
-		oldFrame = frames[index];
+		oldFrame = frames.back();
+		frames.pop_back();
 		oldPageID = oldFrame->pageId();
 		oldPage = (BTreePage<T>*)oldFrame->getData();
 
@@ -166,13 +166,13 @@ tuple<PageID, BufferFrame*> BTree<T, CMP>::splitUpwards(T key, PageID oldLeafPag
 		}
 		unloadPage(oldFrame, true);
 
-		if (index == 0) {
+		if (frames.empty()) {
 			//TODO adjust root pageID
 			rootPageID = newPageID;
 			break;
 		}
 		// fixup parent page if not root
-		oldFrame = frames[index-1];
+		oldFrame = frames.back();
 		oldPage = (BTreePage<T>*)oldFrame->getData();
 		uint16_t inRootInd = 0;
 		while (true) {
@@ -189,15 +189,18 @@ tuple<PageID, BufferFrame*> BTree<T, CMP>::splitUpwards(T key, PageID oldLeafPag
 			overflow = true;
 			overflowKey = oldPage->children[oldPage->count-1].key;
 			overflowValue = oldPage->children[oldPage->count-1].value;
-			full = (oldPage->count+2) * sizeof(BTreeKV<T>) > PAGE_SIZE;
 		}
+		full = (oldPage->count+1+decrease) * sizeof(BTreeKV<T>) > PAGE_SIZE;
+
 		memmove(&oldPage->children[inRootInd+1], &oldPage->children[inRootInd],
 				sizeof(BTreeKV<T>) * (oldPage->count - inRootInd - decrease));
 		oldPage->count += 1 - decrease;
 		oldPage->children[inRootInd].key = newKey;
 		oldPage->children[inRootInd].value = newValue;
-
-		index--;
+	}
+	while (!frames.empty()) {
+		unloadPage(frames.back(), false);
+		frames.pop_back();
 	}
 	return returnVal;
 }
