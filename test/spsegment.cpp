@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "testutil.h"
 
 #include "spsegment.h"
 
@@ -6,7 +7,6 @@
 #include <unordered_map>
 #include <iostream>
 #include <cstdlib>
-#include <ctime>
 
 using namespace std;
 
@@ -22,10 +22,6 @@ protected:
 	virtual void SetUp() {
 		fm = shared_ptr<FileManager>(new FileManager("test_data"));
 		bm = shared_ptr<BufferManager>(new BufferManager(64, fm));
-	}
-
-	char randChar() {
-		return 'a' + (rand() % ('z'-'a'));
 	}
 
 	void fillTest(uint64_t fillSize, bool unload, bool unloadBuffer, bool unloadFile);
@@ -60,7 +56,7 @@ TEST_F(SPSegmentTest, Use) {
 	SPSegment segment(1, bm, true);
 	ASSERT_EQ(1, segment.segment());
 
-	string s(1, randChar());
+	string s(1, testutil::randChar());
 
 	string s2(s);
 	Record r(s2.length(), s2.c_str());
@@ -73,7 +69,7 @@ TEST_F(SPSegmentTest, Use) {
 }
 
 TEST_F(SPSegmentTest, UseWithUnload) {
-	string s(1, randChar());
+	string s(1, testutil::randChar());
 
 	TID tid;
 
@@ -102,7 +98,7 @@ TEST_F(SPSegmentTest, Remove) {
 	SPSegment segment(1, bm, true);
 	ASSERT_EQ(1, segment.segment());
 
-	string s(1, randChar());
+	string s(1, testutil::randChar());
 
 	string s2(s);
 	Record r(s2.length(), s2.c_str());
@@ -124,7 +120,7 @@ TEST_F(SPSegmentTest, RemoveTwice) {
 	SPSegment segment(1, bm, true);
 	ASSERT_EQ(1, segment.segment());
 
-	string s(1, randChar());
+	string s(1, testutil::randChar());
 
 	string s2(s);
 	Record r(s2.length(), s2.c_str());
@@ -208,11 +204,7 @@ void SPSegmentTest::fillTest(uint64_t fillSize, bool unload, bool unloadBuffer,
 	uint64_t recordSize = 64;
 	for (uint64_t bytesFilled = 0; bytesFilled < fillSize;
 			bytesFilled += recordSize) {
-		string s;
-		s.reserve(recordSize);
-		for (uint64_t i=0; i< recordSize; i++) {
-			s.push_back(randChar());
-		}
+		string s = testutil::randString(recordSize);
 		Record r(s.length(), s.c_str());
 		TID tid = segment->insert(r);
 		EXPECT_NE(0, tid);

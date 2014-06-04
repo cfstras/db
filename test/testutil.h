@@ -53,4 +53,17 @@ class Timeout {
 	std::thread timer;
 };
 
+inline char randChar() {
+	return 'a' + (rand() % ('z'-'a'));
+}
+
+inline std::string randString(unsigned len) {
+	std::string s;
+	s.reserve(len);
+	for (unsigned i = 0; i<len; i++) {
+		s.push_back(randChar());
+	}
+	return s;
+}
+
 } // namespace
