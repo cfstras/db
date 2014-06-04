@@ -10,6 +10,7 @@
 #include "buffermanager.h"
 
 enum class SegmentType {
+	None,
 	SPSegment,
 	BTree,
 
