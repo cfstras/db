@@ -26,7 +26,7 @@ protected:
 	void SetUp() {
 		srand(0);
 		fm = shared_ptr<FileManager>(new FileManager("test_data"));
-		bm = shared_ptr<BufferManager>(new BufferManager(128, fm.get()));
+		bm = shared_ptr<BufferManager>(new BufferManager(128, fm));
 	}
 
 	shared_ptr<FileManager> fm;

@@ -20,13 +20,8 @@ protected:
 	}
 
 	virtual void SetUp() {
-		fm = new FileManager("test_data");
+		fm = shared_ptr<FileManager>(new FileManager("test_data"));
 		bm = shared_ptr<BufferManager>(new BufferManager(64, fm));
-	}
-
-	virtual void TearDown() {
-		bm = nullptr;
-		delete fm; // will crash if anyone still has this shared ptr
 	}
 
 	char randChar() {
@@ -35,7 +30,7 @@ protected:
 
 	void fillTest(uint64_t fillSize, bool unload, bool unloadBuffer, bool unloadFile);
 
-	FileManager *fm;
+	shared_ptr<FileManager> fm;
 	shared_ptr<BufferManager> bm;
 
 };
@@ -92,10 +87,8 @@ TEST_F(SPSegmentTest, UseWithUnload) {
 		EXPECT_NE(0, tid);
 	}
 
-	bm = nullptr;
-	delete fm;
-	fm = new FileManager("test_data");
-	bm = shared_ptr<BufferManager>(new BufferManager(32, fm));
+	fm.reset(new FileManager("test_data"));
+	bm.reset(new BufferManager(32, fm));
 
 	{
 		SPSegment segment(1, bm);
@@ -233,12 +226,10 @@ void SPSegmentTest::fillTest(uint64_t fillSize, bool unload, bool unloadBuffer,
 	if (unload || unloadBuffer ||unloadFile) {
 		delete segment;
 		if (unloadBuffer) {
-			bm = nullptr;
 			if (unloadFile) {
-				delete fm;
-				fm = new FileManager("test_data");
+				fm.reset(new FileManager("test_data"));
 			}
-			bm = shared_ptr<BufferManager>(new BufferManager(32, fm));
+			bm.reset(new BufferManager(32, fm));
 		}
 		segment = new SPSegment(1, bm, false);
 	}

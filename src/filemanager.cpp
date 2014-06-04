@@ -14,23 +14,15 @@
 
 using namespace std;
 
-void FileManager::deconstruct(int param) { deconstruct(); }
-
-void FileManager::deconstruct() {
-	if (instance_ != nullptr) {
-		delete instance_;
-	}
-}
-
 FileManager* FileManager::instance_ = nullptr;
+shared_ptr<FileManager> alwaysInstance = nullptr;
 
-FileManager* FileManager::instance() {
+shared_ptr<FileManager> FileManager::instance() {
 	if (instance_== nullptr) {
 		instance_ = new FileManager("data/");
-		signal(SIGTERM|SIGSEGV|SIGINT|SIGABRT|SIGFPE, deconstruct);
-		atexit(deconstruct);
+		alwaysInstance.reset(instance_);
 	}
-	return instance_;
+	return alwaysInstance;
 }
 
 FileManager::FileManager(string basePath) : basePath_(basePath) {

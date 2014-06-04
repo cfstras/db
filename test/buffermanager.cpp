@@ -34,8 +34,8 @@ TEST(BufferManagerTest, InitAndDestruct) {
 TEST(BufferManagerTest, InitAndDestructAlt) {
 	Timeout *timer = new Timeout(200);
 
-	FileManager f("test_data");
-	BufferManager b(1, &f);
+	shared_ptr<FileManager> f(new FileManager("test_data"));
+	BufferManager b(1, f);
 	EXPECT_EQ(1, b.size());
 
 	timer->finished();
@@ -130,9 +130,8 @@ void basicTest(bool withUnload, bool withFileManager) {
 
 	Timeout *timer = new Timeout(400);
 
-	FileManager *fm = new FileManager("test_data");
-
-	BufferManager *bm = new BufferManager(16, fm);
+	shared_ptr<FileManager> fm(new FileManager("test_data"));
+	shared_ptr<BufferManager> bm(new BufferManager(16, fm));
 	{
 		BufferFrame &f = bm->fixPage(page, true);
 
@@ -142,12 +141,10 @@ void basicTest(bool withUnload, bool withFileManager) {
 		bm->unfixPage(f, true);
 	}
 	if (withUnload || withFileManager) {
-		delete bm;
 		if (withFileManager) {
-			delete fm;
-			fm = new FileManager("test_data");
+			fm.reset(new FileManager("test_data"));
 		}
-		bm = new BufferManager(16, fm);
+		bm.reset(new BufferManager(16, fm));
 	}
 	{
 		BufferFrame &f = bm->fixPage(page, false);
@@ -159,8 +156,8 @@ void basicTest(bool withUnload, bool withFileManager) {
 
 		bm->unfixPage(f, false);
 	}
-	delete bm;
-	delete fm;
+	fm.reset((FileManager*)nullptr);
+	bm.reset((BufferManager*)nullptr);
 
 	timer->finished();
 	delete timer;

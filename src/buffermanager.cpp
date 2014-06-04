@@ -9,7 +9,7 @@
 
 using namespace std;
 
-BufferManager::BufferManager(unsigned size, FileManager* fm) :
+BufferManager::BufferManager(unsigned size, shared_ptr<FileManager> fm) :
 	fileManager_(fm),
 	size_(size),
 	slots(size)
@@ -19,7 +19,7 @@ BufferManager::BufferManager(unsigned size, FileManager* fm) :
 }
 
 BufferManager::BufferManager(unsigned size) :
-	BufferManager(size, FileManager::instance())
+	BufferManager(size, shared_ptr<FileManager>(FileManager::instance()))
 {
 }
 

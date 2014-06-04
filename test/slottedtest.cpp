@@ -43,8 +43,8 @@ int test(const unsigned pageSize) {
 	unordered_map<unsigned, unsigned> usage; // pageID -> bytes used within this page
 
 	// Setting everything
-	FileManager fm("test_data");
-	shared_ptr<BufferManager> bm(new BufferManager(100, &fm));
+	shared_ptr<BufferManager> bm(new BufferManager(100,
+			shared_ptr<FileManager>(new FileManager("test_data"))));
 	SPSegment sp(3, bm, true);
 	Random64 rnd;
 

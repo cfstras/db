@@ -4,6 +4,7 @@
 #include <vector>
 #include <mutex>
 #include <condition_variable>
+#include <memory>
 #include <cstdint>
 
 #include "util.h"
@@ -21,7 +22,7 @@ public:
 	 * Creates a new instance which keeps up to size frames in memory at one time.
 	 * @param fm to use a different-than-default FileManager.
 	 */
-	BufferManager(unsigned size, FileManager* fm);
+	BufferManager(unsigned size, std::shared_ptr<FileManager> fm);
 
 	/**
 	 * Writes all dirty frames and frees all resources.
@@ -68,7 +69,7 @@ private:
 	 */
 	bool tryFreeingPage(std::unique_lock<std::mutex> &lock);
 
-	FileManager* fileManager_;
+	std::shared_ptr<FileManager> fileManager_;
 	unsigned size_;
 
 	/**

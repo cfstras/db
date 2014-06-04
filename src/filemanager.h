@@ -3,13 +3,14 @@
 #include <string>
 #include <unordered_map>
 #include <mutex>
+#include <memory>
 #include <cstdint>
 
 #include "util.h"
 
 class FileManager {
 public:
-	static FileManager* instance();
+	static std::shared_ptr<FileManager> instance();
 
 	// for building your own custom FileManager
 	FileManager(std::string basePath);
