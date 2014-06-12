@@ -28,10 +28,9 @@ std::unique_ptr<Schema> Parser::parse() {
 	std::string token;
 	unsigned line=1;
 	std::unique_ptr<Schema> s(new Schema());
-	in.open(fileName.c_str());
-	if (!in.is_open())
+	if (!in)
 		throw ParserError(line, "cannot open file '"+fileName+"'");
-	while (in >> token) {
+	while (*in >> token) {
 		std::string::size_type pos;
 		std::string::size_type prevPos = 0;
 
@@ -44,7 +43,6 @@ std::unique_ptr<Schema> Parser::parse() {
 		if (token.find("\n")!=std::string::npos)
 			++line;
 	}
-	in.close();
 	return std::move(s);
 }
 
