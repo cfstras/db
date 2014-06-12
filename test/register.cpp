@@ -11,7 +11,6 @@ TEST(RegisterTest, Cons) {
 	Register r2(2);
 }
 
-
 /**
  * a == b
  * a < c
