@@ -5,6 +5,7 @@ bin/
 build/
 build_test/
 temp/
+report/
 
 # database data folders
 data/

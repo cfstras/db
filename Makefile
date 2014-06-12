@@ -27,6 +27,10 @@ all: build-test
 debug: build-debug
 #	gdb --args $(BINDIR)/$(BINARY)
 
+cov:
+	kcov --include-path=$(shell pwd)/src/ report/ bin/test_db; true
+	gnome-open report/index.html
+
 build-debug: CXXFLAGS += $(DEBUG)
 build-debug:
 	[ -f $(OBJDIR)/OPTIMIZED ] && $(MAKE) clean; true
