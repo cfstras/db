@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 #include "util.h"
 #include "record.h"
@@ -12,15 +13,15 @@
  */
 class Marshal {
 public:
-	Marshal(Schema schema);
+	Marshal(std::shared_ptr<Schema> schema);
 
-	std::vector<Register> marshal(const Record& source);
-	void marshal(const Record& source, std::vector<Register> registers);
+	std::vector<Register*> marshal(const Record& source);
+	void marshal(const Record& source, std::vector<Register*> registers);
 
-	Record unmarshal(std::vector<Register>& registers);
+	Record unmarshal(std::vector<Register*>& registers);
 
 private:
 	DISALLOW_COPY_AND_ASSIGN(Marshal);
 
-	Schema schema;
+	std::shared_ptr<Schema> schema;
 };
