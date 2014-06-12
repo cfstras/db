@@ -13,7 +13,7 @@
  */
 class Marshal {
 public:
-	Marshal(std::shared_ptr<Schema> schema);
+	Marshal(Schema::Relation relation);
 
 	std::vector<Register*> marshal(const Record& source);
 	void marshal(const Record& source, std::vector<Register*> registers);
@@ -23,5 +23,5 @@ public:
 private:
 	DISALLOW_COPY_AND_ASSIGN(Marshal);
 
-	std::shared_ptr<Schema> schema;
+	Schema::Relation relation;
 };

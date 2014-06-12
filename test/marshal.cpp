@@ -15,10 +15,10 @@ protected:
 
 	}
 
-	shared_ptr<Schema> sch(string v) {
+	Schema::Relation sch(string v) {
 		stringstream in(v);
 		Parser p(&in);
-		return shared_ptr<Schema>(p.parse());
+		return p.parse()->relations[0];
 	}
 
 	void eq(vector<Register*> a, vector<Register*> b) {
