@@ -1,34 +1,17 @@
 #pragma once
 
-#include <iostream>
 #include <memory>
 
 #include "operator.h"
 
 class PrintOperator : public Operator {
 public:
-	PrintOperator(std::shared_ptr<Operator> source) : Operator(),
-			source(source)
-	{
-	}
+	PrintOperator(std::shared_ptr<Operator> source);
 
-	virtual void open() {
-		source->open();
-	}
-
-	virtual bool next() {
-		if (!source->next()) return false;
-		std::cout << tupleToString(source->getOutput()) << std::endl;
-		return true;
-	}
-
-	virtual void close() {
-		source->close();
-	}
-
-	virtual std::vector<Register*> getOutput() {
-		return std::vector<Register*>();
-	}
+	virtual void open();
+	virtual bool next();
+	virtual void close();
+	virtual std::vector<Register*> getOutput();
 
 private:
 	DISALLOW_COPY_AND_ASSIGN(PrintOperator);
