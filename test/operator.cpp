@@ -7,51 +7,59 @@
 #include "operator.h"
 #include "operator/print.h"
 #include "operator/dummy.h"
+#include "operator/projection.h"
 
 using namespace std;
 
 namespace {
 
-TEST(DummyOperator, Test) {
-	vector<vector<string>> src = {
-		{"first row", "yay"},
-		{"second", "row", "is", "longer"},
-		{"I", "say", "wat", "wat"},
-		{"next row is nulls"},
-		{}
-	};
+class OperatorTest : public ::testing::Test {
+protected:
 
-	vector<vector<string>> srccopy(src);
-	DummyOperator op(srccopy);
-	op.open();
-	size_t row = 0;
-	for (; row<src.size(); row++) {
-		ASSERT_EQ(true, op.next());
-		auto outs = op.getOutput();
-		//cerr << tupleToString(outs) << endl;
-		for (size_t i=0; i<outs.size(); i++) {
-			if (i < src[row].size()) {
-				EXPECT_EQ(src[row][i], outs[i]->getString()) << "row " << row
-					<< ", ind " << i;
+	vector<vector<string>> getData() {
+		return {
+			{"first row", "yay"},
+			{"second", "row", "is", "longer"},
+			{"I", "say", "wat", "wat"},
+			{"next", "row", "is", "nulls"},
+			{}
+		};
+	}
+
+	void testOperator(Operator& op, vector<vector<string>> expect) {
+		op.open();
+		size_t row = 0;
+		for (; row<expect.size(); row++) {
+			ASSERT_EQ(true, op.next());
+			auto outs = op.getOutput();
+			//cerr << tupleToString(outs) << endl;
+			for (size_t i=0; i<outs.size(); i++) {
+				if (i < expect[row].size()) {
+					EXPECT_EQ(expect[row][i], outs[i]->getString()) << "row " << row
+						<< ", ind " << i;
+				}
 			}
 		}
+		EXPECT_EQ(expect.size(), row);
+		ASSERT_EQ(false, op.next());
+		op.close();
 	}
-	EXPECT_EQ(src.size(), row);
-	ASSERT_EQ(false, op.next());
+};
+
+TEST_F(OperatorTest, Dummy) {
+	DummyOperator op(getData());
+	testOperator(op, getData());
 }
 
-TEST(PrintOperator, Test) {
+TEST_F(OperatorTest, Print) {
 	stringstream actual;
 	streambuf *coutbuf = cout.rdbuf(); // save old buf
 	cout.rdbuf(actual.rdbuf()); // redirect cout
 
-	vector<vector<string>> src = {
-		{"first row", "yay"},
-		{"second", "row", "is", "longer"},
-	};
-	string expected = "[first row, yay, , ]\n[second, row, is, longer]\n";
+	string expected = "[first row, yay, , ]\n[second, row, is, longer]\n"
+		+string("[I, say, wat, wat]\n[next, row, is, nulls]\n[, , , ]\n");
 
-	shared_ptr<DummyOperator> dum(new DummyOperator(src));
+	shared_ptr<DummyOperator> dum(new DummyOperator(getData()));
 	PrintOperator print(dum);
 
 	print.open();
@@ -61,6 +69,21 @@ TEST(PrintOperator, Test) {
 	EXPECT_EQ(expected, actual.str());
 
 	cout.rdbuf(coutbuf);
+}
+
+TEST_F(OperatorTest, Projection) {
+	shared_ptr<DummyOperator> dum(new DummyOperator(getData()));
+	vector<size_t> cols = {2, 0};
+	vector<vector<string>> expected = {
+		{"", "first row"},
+		{"is", "second"},
+		{"wat", "I"},
+		{"is", "next"},
+		{},
+	};
+
+	ProjectionOperator proj(dum, cols);
+	testOperator(proj, expected);
 }
 
 } // namespace

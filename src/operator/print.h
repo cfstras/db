@@ -1,9 +1,9 @@
 #pragma once
 
-#include "operator.h"
-
 #include <iostream>
 #include <memory>
+
+#include "operator.h"
 
 class PrintOperator : public Operator {
 public:

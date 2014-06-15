@@ -38,8 +38,11 @@ public:
 	virtual void close() {
 		for (size_t i=0; i<registers.size(); i++) {
 			delete registers[i];
-			registers.clear();
 		}
+		index = 0;
+		size_t len = registers.size();
+		registers.clear();
+		registers.resize(len);
 	}
 
 	virtual std::vector<Register*> getOutput() {
