@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+#include <vector>
 #include <cassert>
 
 #include "util.h"
@@ -27,11 +29,31 @@ public:
 	void setLong  (    int64_t v) { l   = v; type = Type::l ; }
 	void setULong (   uint64_t v) { ul  = v; type = Type::ul; }
 
-	std::string getString() { assert(type == Type::s ); return s; }
-	int32_t getInt()        { assert(type == Type::i ); return i; }
-	uint32_t getUInt()      { assert(type == Type::u ); return u; }
-	int64_t getLong()       { assert(type == Type::l ); return l; }
-	uint64_t getULong()     { assert(type == Type::ul); return ul;}
+	std::string getString() const { assert(type == Type::s ); return s; }
+	int32_t getInt()        const { assert(type == Type::i ); return i; }
+	uint32_t getUInt()      const { assert(type == Type::u ); return u; }
+	int64_t getLong()       const { assert(type == Type::l ); return l; }
+	uint64_t getULong()     const { assert(type == Type::ul); return ul;}
+
+	Type getType() const { return type; }
+
+	const std::string toString() const {
+		switch (type) {
+		case Type::s:
+			return s;
+		case Type::i:
+			return std::to_string(i);
+		case Type::u:
+			return std::to_string(u);
+		case Type::l:
+			return std::to_string(l);
+		case Type::ul:
+			return std::to_string(ul);
+		default:
+			return "[type "+std::to_string((int)type)
+				+" cannot be converted to string]";
+		}
+	}
 
 	//TODO template metaprogramming would be nice here
 	bool operator==(const Register &other) const {
@@ -142,3 +164,18 @@ private:
 	};
 	Type type;
 };
+
+inline std::string tupleToString(std::vector<Register*> v) {
+	std::stringstream str;
+	str << "[";
+	bool first = true;
+	for (const auto &s : v) {
+		if (first)
+			first = false;
+		else
+			str << ", ";
+		str << s->toString();
+	}
+	str << "]";
+	return str.str();
+}

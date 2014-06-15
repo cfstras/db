@@ -1,15 +1,20 @@
 #pragma once
 
+#include <vector>
+
 #include "util.h"
 #include "register.h"
 
 class Operator {
 public:
 
+	Operator(){};
+
 	// Open the operator
 	virtual void open() = 0;
 
 	// Produce the next tuple
+	// returns false if no tuple was produced
 	virtual bool next() = 0;
 
 	// Get all produced values

@@ -66,4 +66,19 @@ inline std::string randString(unsigned len) {
 	return s;
 }
 
+inline std::string toString(std::vector<std::string> v) {
+	std::stringstream str;
+	str << "[";
+	bool first = true;
+	for (const auto &s : v) {
+		if (first)
+			first = false;
+		else
+			str << ", ";
+		str << s;
+	}
+	str << "]";
+	return str.str();
+}
+
 } // namespace
