@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <vector>
-#include <cassert>
 
 #include "operator.h"
 

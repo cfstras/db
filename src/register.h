@@ -29,6 +29,23 @@ public:
 	void setLong  (    int64_t v) { l   = v; type = Type::l ; }
 	void setULong (   uint64_t v) { ul  = v; type = Type::ul; }
 
+	// explicit copy
+	void set(const Register& r) {
+		type = r.type;
+		switch (r.type) {
+		case Type::s:
+			s = r.s;
+		case Type::i:
+			i = r.i;
+		case Type::u:
+			u = r.u;
+		case Type::l:
+			l = r.l;
+		case Type::ul:
+			ul = r.ul;
+		}
+	}
+
 	std::string getString() const { assert(type == Type::s ); return s; }
 	int32_t getInt()        const { assert(type == Type::i ); return i; }
 	uint32_t getUInt()      const { assert(type == Type::u ); return u; }
@@ -155,8 +172,8 @@ public:
 private:
 	DISALLOW_COPY_AND_ASSIGN(Register);
 
-	union{
-		std::string s;
+	std::string s;
+	union {
 		int32_t i;
 		uint32_t u;
 		int64_t l;

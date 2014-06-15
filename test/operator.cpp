@@ -8,6 +8,7 @@
 #include "operator/print.h"
 #include "operator/dummy.h"
 #include "operator/projection.h"
+#include "operator/selection.h"
 
 using namespace std;
 
@@ -18,7 +19,7 @@ protected:
 
 	vector<vector<string>> getData() {
 		return {
-			{"first row", "yay"},
+			{"first", "row"},
 			{"second", "row", "is", "longer"},
 			{"I", "say", "wat", "wat"},
 			{"next", "row", "is", "nulls"},
@@ -56,7 +57,7 @@ TEST_F(OperatorTest, Print) {
 	streambuf *coutbuf = cout.rdbuf(); // save old buf
 	cout.rdbuf(actual.rdbuf()); // redirect cout
 
-	string expected = "[first row, yay, , ]\n[second, row, is, longer]\n"
+	string expected = "[first, row, , ]\n[second, row, is, longer]\n"
 		+string("[I, say, wat, wat]\n[next, row, is, nulls]\n[, , , ]\n");
 
 	shared_ptr<DummyOperator> dum(new DummyOperator(getData()));
@@ -75,7 +76,7 @@ TEST_F(OperatorTest, Projection) {
 	shared_ptr<DummyOperator> dum(new DummyOperator(getData()));
 	vector<size_t> cols = {2, 0};
 	vector<vector<string>> expected = {
-		{"", "first row"},
+		{"", "first"},
 		{"is", "second"},
 		{"wat", "I"},
 		{"is", "next"},
@@ -84,6 +85,20 @@ TEST_F(OperatorTest, Projection) {
 
 	ProjectionOperator proj(dum, cols);
 	testOperator(proj, expected);
+}
+
+TEST_F(OperatorTest, Selection) {
+	shared_ptr<DummyOperator> dum(new DummyOperator(getData()));
+	size_t row = 1;
+	Register seek("row");
+	vector<vector<string>> expected = {
+		getData()[0],
+		getData()[1],
+		getData()[3],
+	};
+
+	SelectionOperator sel(dum, row, seek);
+	testOperator(sel, expected);
 }
 
 } // namespace
