@@ -21,4 +21,5 @@ private:
 	std::shared_ptr<Operator> source;
 	size_t row;
 	Register value;
+	Register* inputRegister;
 };

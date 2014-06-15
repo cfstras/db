@@ -11,10 +11,15 @@ SelectionOperator::SelectionOperator(shared_ptr<Operator> source,
 
 void SelectionOperator::open() {
 	source->open();
+	inputRegister = source->getOutput()[row];
 }
 
 bool SelectionOperator::next() {
-	row = row+1;
+	while (source->next()) {
+		if (*inputRegister == value) {
+			return true;
+		}
+	}
 	return false;
 }
 
