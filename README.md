@@ -11,12 +11,16 @@ apt-get install libgtest-dev build-essential clang
     - PrintOperator
     - ProjectionOperator
     - SelectionOperator
-    - HashJoinOperator (still too many memcpy's)
-    - DummyOperator (reads from vector<vector<string>>)
+    - HashJoinOperator  
+    (still too many memcpy's)
+    - DummyOperator  
+    (reads from vector<vector<string>>)
 
-- Missing Operators:
-    - TableScanOperator
-    - BTreeScanOperator
+- Missing Operators
+    - TableScanOperator  
+    should be aware of slots etc. and iterate through them
+    - BTreeScanOperator  
+    should use BTree::next (which, in turn, is missing) :(
 
 - Draft for record (un-)Marshaler is in `src/marshal.h`
 
