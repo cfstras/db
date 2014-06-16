@@ -29,7 +29,11 @@ public:
 	void setLong  (    int64_t v) { l   = v; type = Type::l ; }
 	void setULong (   uint64_t v) { ul  = v; type = Type::ul; }
 
-	// explicit copy
+	// Copy-Constructor
+	Register(const Register& r) {
+		set(r);
+	};
+
 	void set(const Register& r) {
 		type = r.type;
 		switch (r.type) {
@@ -53,6 +57,23 @@ public:
 	uint64_t getULong()     const { assert(type == Type::ul); return ul;}
 
 	Type getType() const { return type; }
+
+	size_t hash() const {
+		switch (type) {
+		case Type::s:
+			std::hash<std::string> fns;  return fns(s);
+		case Type::i:
+			std::hash<int32_t>     fni;  return fni(i);
+		case Type::u:
+			std::hash<uint32_t>    fnu;  return fnu(u);
+		case Type::l:
+			std::hash<int64_t>     fnl;  return fnl(l);
+		case Type::ul:
+			std::hash<uint64_t>    fnul; return fnul(ul);
+		default:
+			assert(false); // not implemented
+		}
+	}
 
 	const std::string toString() const {
 		switch (type) {
@@ -170,7 +191,7 @@ public:
 	}
 
 private:
-	DISALLOW_COPY_AND_ASSIGN(Register);
+	void operator=(const Register&) = delete;
 
 	std::string s;
 	union {
@@ -181,6 +202,16 @@ private:
 	};
 	Type type;
 };
+
+namespace std {
+template <>
+struct hash<Register> {
+	size_t operator()(const Register &x) const {
+		return x.hash();
+	}
+};
+
+} // namespace
 
 inline std::string tupleToString(std::vector<Register*> v) {
 	std::stringstream str;

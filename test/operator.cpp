@@ -9,6 +9,7 @@
 #include "operator/dummy.h"
 #include "operator/projection.h"
 #include "operator/selection.h"
+#include "operator/hashjoin.h"
 
 using namespace std;
 
