@@ -1,14 +1,24 @@
-# Assignment 4: B-Tree
+# Assignment 5: Operators
 
 (Hopefully complete) build requisites, example for Debian-ish systems:
 ```bash
 apt-get install libgtest-dev build-essential clang
 ```
 
-- Implementation is in `src/btree.{cpp.h, h}`
-- Unittests are in `test/btree.cpp`
-- What does (sort of) work: insert, lookup
-- What does not work: node split, remove
+- Implementations are in `src/operator.h` and `src/operator/*`
+- Unittests are in `test/operator.cpp`
+- Implemented Operators:
+    - PrintOperator
+    - ProjectionOperator
+    - SelectionOperator
+    - HashJoinOperator (still too many memcpy's)
+    - DummyOperator (reads from vector<vector<string>>)
+
+- Missing Operators:
+    - TableScanOperator
+    - BTreeScanOperator
+
+- Draft for record (un-)Marshaler is in `src/marshal.h`
 
 ## Running the unittests
 
