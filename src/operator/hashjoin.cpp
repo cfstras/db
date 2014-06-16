@@ -18,7 +18,7 @@ void HashJoinOperator::open() {
 
 	// read left input
 	while (leftOperator->next()) {
-		if (hashTable.find(left) != hashTable.end()) {
+		if (hashTable.find(*left) != hashTable.end()) {
 			continue; // key is already in there
 		}
 		vector<Register> regs;
@@ -26,8 +26,9 @@ void HashJoinOperator::open() {
 		for (size_t i=0; i<leftLen; i++) {
 			regs.emplace_back(Register(*leftRegs[i]));
 		}
-		hashTable.emplace(make_pair(&regs[leftColumn], entries.size()));
+		size_t ind = entries.size();
 		entries.push_back(regs);
+		hashTable.emplace(make_pair(entries[ind][leftColumn], ind));
 	}
 	leftOperator->close();
 
@@ -37,13 +38,9 @@ void HashJoinOperator::open() {
 	rightLen = rightRegs.size();
 	right = rightRegs[rightColumn];
 
-	output.reserve(leftLen + rightLen - 1);
-	for (size_t i = 0; i<leftLen; i++) {
-		output.push_back(new Register(0));
-	}
-	for (size_t i = 0; i<rightLen; i++) {
-		if (i == rightColumn) continue;
-		output.push_back(new Register(0));
+	output.resize(leftLen + rightLen - 1);
+	for (size_t i=0; i<output.size(); i++) {
+		output[i] = new Register(0);
 	}
 }
 
@@ -51,7 +48,7 @@ bool HashJoinOperator::next() {
 	auto it = hashTable.end();
 	do {
 		if (!rightOperator->next()) return false;
-		it = hashTable.find(right);
+		it = hashTable.find(*right);
 	} while (it == hashTable.end());
 
 	// found one.
@@ -64,9 +61,13 @@ bool HashJoinOperator::next() {
 	for (size_t i=0; i<leftLen; i++) {
 		output[i]->set(leftRegs[i]);
 	}
+	size_t tempLeftLen = leftLen;
 	for (size_t i=0; i<rightLen; i++) {
-		if (i == rightColumn) continue;
-		output[i]->set(*rightRegs[i]);
+		if (i == rightColumn) {
+			tempLeftLen--; // skip this one
+			continue;
+		}
+		output[tempLeftLen+i]->set(*rightRegs[i]);
 	}
 	return true;
 }

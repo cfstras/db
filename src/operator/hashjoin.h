@@ -29,7 +29,7 @@ private:
 	// stores the whole left output
 	std::vector<std::vector<Register>> entries;
 	// stores indizes into entries
-	std::unordered_map<Register*, size_t> hashTable;
+	std::unordered_map<Register, size_t> hashTable;
 
 	std::vector<Register*> output;
 };

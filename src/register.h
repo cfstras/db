@@ -204,10 +204,18 @@ private:
 };
 
 namespace std {
+
 template <>
 struct hash<Register> {
 	size_t operator()(const Register &x) const {
 		return x.hash();
+	}
+};
+
+template <>
+struct hash<Register*> {
+	size_t operator()(const Register* x) const {
+		return x->hash();
 	}
 };
 
