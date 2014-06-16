@@ -20,10 +20,18 @@ protected:
 
 	vector<vector<string>> getData() {
 		return {
-			{"first", "row"},
-			{"second", "row", "is", "longer"},
-			{"I", "say", "wat", "wat"},
-			{"next", "row", "is", "nulls"},
+			{"first",  "row"},
+			{"second", "row", "is",  "longer"},
+			{"I",      "say", "wat", "wat"},
+			{"next",   "row", "is",  "nulls"},
+			{}
+		};
+	}
+
+	vector<vector<string>> getData2() {
+		return {
+			{"wululu", "second", "wululu", "wululu", "wululu"},
+			{"wululu", "next",   "wululu", "wululu"},
 			{}
 		};
 	}
@@ -100,6 +108,27 @@ TEST_F(OperatorTest, Selection) {
 
 	SelectionOperator sel(dum, row, seek);
 	testOperator(sel, expected);
+}
+
+TEST_F(OperatorTest, HashJoin) {
+	stringstream actual;
+	streambuf *coutbuf = cout.rdbuf(); // save old buf
+	cout.rdbuf(actual.rdbuf()); // redirect cout
+
+	shared_ptr<Operator>
+			left(new DummyOperator(getData())),
+			right(new DummyOperator(getData2())),
+			join(new HashJoinOperator(left, right, 0, 1));
+
+	PrintOperator print(join);
+
+	print.open();
+	while (print.next());
+	print.close();
+
+	cerr << actual.str();
+
+	cout.rdbuf(coutbuf);
 }
 
 } // namespace
