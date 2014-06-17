@@ -11,6 +11,8 @@ GTESTDIR		= /usr/src/gtest
 GTEST_LIB		= $(OBJDIR)_test/libgtest.a
 
 CXX 			= clang++
+AR				= ar -rv
+#AR				= llvm-ar r
 DEBUG			= -O0 -DDEBUG
 OPTIMIZED		= -O3
 CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -Wall -Werror -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
@@ -108,6 +110,6 @@ $(OBJDIR)_test/%.o: $(TESTDIR)/%.cpp
 -include $(OBJDIR)_test/*.d
 
 $(GTEST_LIB): $(GTESTDIR)
-	$(CXX) $(TEST_CXXFLAGS) -w -c -isystem $(GTESTDIR)/include -I$(GTESTDIR) -c \
+	$(CXX) $(TEST_CXXFLAGS) -w -c -I$(GTESTDIR) -c \
 		$(GTESTDIR)/src/gtest-all.cc -o $(OBJDIR)_test/gtest-all.o
-	$(AR) -rv $(GTEST_LIB) $(OBJDIR)_test/gtest-all.o
+	$(AR) $(GTEST_LIB) $(OBJDIR)_test/gtest-all.o
