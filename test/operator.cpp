@@ -111,24 +111,17 @@ TEST_F(OperatorTest, Selection) {
 }
 
 TEST_F(OperatorTest, HashJoin) {
-	stringstream actual;
-	streambuf *coutbuf = cout.rdbuf(); // save old buf
-	cout.rdbuf(actual.rdbuf()); // redirect cout
-
 	shared_ptr<Operator>
 			left(new DummyOperator(getData())),
-			right(new DummyOperator(getData2())),
-			join(new HashJoinOperator(left, right, 0, 1));
+			right(new DummyOperator(getData2()));
+	HashJoinOperator join(left, right, 0, 1);
 
-	PrintOperator print(join);
-
-	print.open();
-	while (print.next());
-	print.close();
-
-	cerr << actual.str();
-
-	cout.rdbuf(coutbuf);
+	vector<vector<string>> expected = {
+		{"second", "row", "is", "longer","wululu", "wululu", "wululu", "wululu"},
+		{"next",   "row", "is",  "nulls", "wululu", "wululu", "wululu"},
+		{},
+	};
+	testOperator(join, expected);
 }
 
 } // namespace
