@@ -40,10 +40,10 @@ If your distro does not have googletest as a package, unzip the source of [googl
 (reads from vector<vector<string>>)
 
 #### Missing Operators
-    - TableScanOperator  
-    should be aware of slots etc. and iterate through them
-    - BTreeScanOperator  
-    should use BTree::next (which, in turn, is missing) :(
+- TableScanOperator  
+should be aware of slots etc. and iterate through them
+- BTreeScanOperator  
+should use BTree::next (which, in turn, is missing) :(
 
 ## License
 
