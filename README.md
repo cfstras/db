@@ -1,64 +1,7 @@
-# Assignment 5: Operators
-
-(Hopefully complete) build requisites, example for Debian-ish systems:
-```bash
-apt-get install libgtest-dev build-essential clang
-```
-
-- Implementations are in `src/operator.h` and `src/operator/*`
-- Unittests are in `test/operator.cpp`
-- Implemented Operators:
-    - PrintOperator
-    - ProjectionOperator
-    - SelectionOperator
-    - HashJoinOperator  
-    (still too many memcpy's)
-    - DummyOperator  
-    (reads from vector<vector<string>>)
-
-- Missing Operators
-    - TableScanOperator  
-    should be aware of slots etc. and iterate through them
-    - BTreeScanOperator  
-    should use BTree::next (which, in turn, is missing) :(
-
-- Draft for record (un-)Marshaler is in `src/marshal.h`
-
-## Running the unittests
-
-```bash
-make test
-```
-
-This builds with `-O2`, because the unittests take quite a lot of time without.
-Some of them are disabled (prefixed with "DISABLED_") to mitigate this a bit.
-
-## Running unittests with debug build
-
-Debug builds do some sanity assertions and a lot more output.
-Helpful for valgrinding and debugging.
-
-```bash
-make debug
-bin/test_db
-```
-
-## Cleaning up
-
-```bash
-make clean
-```
-
-
----
-
----
-
----
 
 # db
 
-This will be a simple database, built in the class _Datenbanksysteme und moderne CPU-Architekturen_.
+This is the ground work for a simple database, built in the class _Datenbanksysteme und moderne CPU-Architekturen_.
 
 ## Usage
 
@@ -85,10 +28,23 @@ If your distro does not have googletest as a package, unzip the source of [googl
 
     make test
 
-### Achieving happiness
+### Completeness
+#### Implemented Operators
+    - PrintOperator
+    - ProjectionOperator
+    - SelectionOperator
+    - HashJoinOperator  
+    (slow)
+    - DummyOperator  
+    (reads from vector<vector<string>>)
 
-    make happiness
+#### Missing Operators
+    - TableScanOperator  
+    should be aware of slots etc. and iterate through them
+    - BTreeScanOperator  
+    should use BTree::next (which, in turn, is missing) :(
 
 ## License
 
-Beerware.
+`reference/*`: As specified in file headers.  
+Everything else: Beerware.
