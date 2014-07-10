@@ -30,13 +30,14 @@ If your distro does not have googletest as a package, unzip the source of [googl
 
 ### Completeness
 #### Implemented Operators
-    - PrintOperator
-    - ProjectionOperator
-    - SelectionOperator
-    - HashJoinOperator  
-    (slow)
-    - DummyOperator  
-    (reads from vector<vector<string>>)
+
+- PrintOperator
+- ProjectionOperator
+- SelectionOperator
+- HashJoinOperator  
+(slow)
+- DummyOperator  
+(reads from vector<vector<string>>)
 
 #### Missing Operators
     - TableScanOperator  
