@@ -6,11 +6,12 @@ compiler:
 before_install:
  # clang 3.4
  - sudo add-apt-repository -y ppa:h-rayflood/llvm
+ - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
  - sudo apt-get update -qq
 
 install:
  - sudo apt-get install -qq libgtest-dev build-essential
- - sudo apt-get install --allow-unauthenticated -qq clang-3.4
+ - sudo apt-get install --allow-unauthenticated -qq clang-3.4 g++-4.8 libstdc++-4.8-dev
  - export CXX="clang++-3.4"
  - sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-3.4 50
  - sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang-3.4 50
