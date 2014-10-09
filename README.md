@@ -1,5 +1,5 @@
 
-# db
+# db [![Build Status](https://travis-ci.org/cfstras/db.svg?branch=master)](https://travis-ci.org/cfstras/db)
 
 This is the ground work for a simple database, built in the class _Datenbanksysteme und moderne CPU-Architekturen_.
 
