@@ -12,6 +12,8 @@ install:
  - sudo apt-get install -qq libgtest-dev build-essential
  - sudo apt-get install --allow-unauthenticated -qq clang-3.4
  - export CXX="clang++-3.4"
+ - sudo update-alternatives --install /usr/bin/clang gcc /usr/bin/clang-3.4 50
+ - sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang-3.4 50
 
 script:
  - make opt
