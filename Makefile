@@ -15,7 +15,7 @@ AR				= ar -rv
 #AR				= llvm-ar r
 DEBUG			= -O0 -DDEBUG
 OPTIMIZED		= -O3
-CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -Wall -Werror -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic
+CXXFLAGS		= -I$(SRCDIR) -I$(TESTDIR) -g -Wall -Werror -std=c++11 -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-mismatched-tags
 OBJFLAGS		= $(CXXFLAGS) -pthread
 LDFLAGS			= -pthread
 TEST_CXXFLAGS	= $(CXXFLAGS) -isystem $(GTESTDIR)/include
