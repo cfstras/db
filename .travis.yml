@@ -19,5 +19,9 @@ install:
  - clang --version
 
 script:
- - make opt
+ # normal unittests
  - make test
+ - make clean
+ # optimized build
+ - make opt
+ - bin/test_db

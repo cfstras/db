@@ -57,8 +57,8 @@ opt:
 	touch $(OBJDIR)/OPTIMIZED
 	$(MAKE) build-opt
 
-build-opt: CXXFLAGS += $(OPTIMIZED)
-build-opt: build
+build-opt: CXXFLAGS += $(OPTIMIZED) -DSILENT
+build-opt: build-test
 
 run: build
 	$(BINDIR)/$(BINARY)
